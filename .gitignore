@@ -3,4 +3,6 @@
 figures/
 *.pyc
 data/__pycache__/
+logs/
+
 

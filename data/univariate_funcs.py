@@ -10,7 +10,7 @@ def func2(x):
 
 
 def func3(x):
-	return np.exp(x)
+	return (1 - np.abs(x)) ** 2
 
 
 def func4(x):

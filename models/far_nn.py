@@ -5,12 +5,12 @@ from collections import OrderedDict
 
 
 class FactorAugmentedNN(nn.Module):
-	def __init__(self, p, r_bar, depth, width, dp_mat):
+	def __init__(self, p, r_bar, depth, width, dp_mat, fix_dp_mat=True):
 		super(FactorAugmentedNN, self).__init__()
 
 		self.diversified_projection = nn.Linear(p, r_bar, bias=False)
 		dp_matrix_tensor = torch.tensor(np.transpose(dp_mat), dtype=torch.float32)
-		self.diversified_projection.weight = nn.Parameter(dp_matrix_tensor, requires_grad=False)
+		self.diversified_projection.weight = nn.Parameter(dp_matrix_tensor, requires_grad=not fix_dp_mat)
 
 		relu_nn = [('linear1', nn.Linear(r_bar, width)), ('relu1', nn.ReLU())]
 		for i in range(depth - 1):
