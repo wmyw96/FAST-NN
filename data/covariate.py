@@ -64,7 +64,7 @@ class FactorModel:
         """
 
         factor = np.reshape(np.random.uniform(-self.b_f, self.b_f, n * self.r), (n, self.r))
-        idiosyncratic_error = np.reshape(np.random.uniform(self.b_u, self.b_u, self.p * n), (n, self.p))
+        idiosyncratic_error = np.reshape(np.random.uniform(-self.b_u, self.b_u, self.p * n), (n, self.p))
         obs = np.matmul(factor, np.transpose(self.loadings)) + idiosyncratic_error
         if latent:
             return obs, factor, idiosyncratic_error

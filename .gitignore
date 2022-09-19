@@ -1,4 +1,6 @@
 .idea/
 .DS_Store
 figures/
+*.pyc
+data/__pycache__/
 

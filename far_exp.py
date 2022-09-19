@@ -16,9 +16,9 @@ import time
 
 init(autoreset=True)
 parser = argparse.ArgumentParser()
-parser.add_argument("--n", help="number of samples", type=int, default=1000)
-parser.add_argument("--p", help="data dimension", type=int, default=2000)
-parser.add_argument("--r", help="factor dimension", type=int, default=6)
+parser.add_argument("--n", help="number of samples", type=int, default=500)
+parser.add_argument("--p", help="data dimension", type=int, default=1000)
+parser.add_argument("--r", help="factor dimension", type=int, default=5)
 parser.add_argument("--r_bar", help="diversified weight dimension", type=int, default=10)
 parser.add_argument("--width", help="width of NN", type=int, default=300)
 parser.add_argument("--depth", help="depth of NN", type=int, default=4)
@@ -43,12 +43,12 @@ n_test = 10000
 n_valid = args.n * 3 // 10
 
 # data generating process
-lfm = FactorModel(p=p, r=args.r, b_f=1, b_u=0.5)
+lfm = FactorModel(p=p, r=args.r, b_f=1, b_u=1)
 regression_model = AdditiveModel(num_funcs=args.r, normalize=False)
 print(regression_model)
 
 
-def far_data(n, noise_level=0):
+def far_data(n, noise_level=0.0):
     observation, factor, _ = lfm.sample(n=n, latent=True)
     x, y = observation, regression_model.sample(factor)
     noise = np.random.normal(0, noise_level, (n, 1))
@@ -56,7 +56,7 @@ def far_data(n, noise_level=0):
 
 
 # prepare dataset
-x_train_obs, x_train_latent, y_train = far_data(n_train, 1)
+x_train_obs, x_train_latent, y_train = far_data(n_train, 0.3)
 x_test_obs, x_test_latent, y_test = far_data(n_test, 0)
 x_valid_obs, x_valid_latent, y_valid = far_data(n_test, 0)
 
@@ -164,6 +164,11 @@ def joint_train():
         'far-nn': 1e9,
         'vanilla-nn': 1e9
     }
+    model_color = {
+        'oracle-nn': Fore.RED,
+        'far-nn': Fore.YELLOW,
+        'vanilla-nn': Fore.GREEN
+    }
     test_perf = {}
     for epoch in range(num_epoch):
         if epoch % 10 == 0:
@@ -178,7 +183,7 @@ def joint_train():
                 test_data_loader = test_latent_dataloader if (model_name == 'oracle-nn') else valid_obs_dataloader
                 test_loss = test_loop(test_data_loader, models[model_name], mse_loss)
                 test_perf[model_name] = test_loss
-                print(Fore.RED + f"Model [{model_name}]: update test loss, best valid loss = {valid_loss}, "
+                print(model_color[model_name] + f"Model [{model_name}]: update test loss, best valid loss = {valid_loss}, "
                       f"current test loss = {test_loss}")
             if epoch % 10 == 0:
                 print(f"Model [{model_name}]: train L2 error = {train_loss}, valid L2 error = {valid_loss}")
