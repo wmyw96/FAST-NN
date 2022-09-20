@@ -26,6 +26,10 @@ parser.add_argument("--width", help="width of NN", type=int, default=300)
 parser.add_argument("--depth", help="depth of NN", type=int, default=4)
 parser.add_argument("--seed", help="random seed of numpy", type=int, default=1)
 parser.add_argument("--batch_size", help="batch size", type=int, default=64)
+parser.add_argument("--dropout_rate", help="dropout rate", type=float, default=0.6)
+parser.add_argument("--exp_id", help="exp id", type=int, default=1)
+parser.add_argument("--record_dir", help="directory to save record", type=str, default="")
+
 args = parser.parse_args()
 
 start_time = time.time()
@@ -45,8 +49,8 @@ n_test = 10000
 n_valid = args.n * 3 // 10
 
 # data generating process
-lfm = FactorModel(p=p, r=args.r, b_f=1, b_u=1)
 regression_model = AdditiveModel(num_funcs=args.r, normalize=False)
+lfm = FactorModel(p=p, r=args.r, b_f=1, b_u=1)
 print(regression_model)
 
 
@@ -93,6 +97,12 @@ oracle_nn_model = RegressionNN(d=args.r, depth=depth, width=width).to(device)
 vanilla_nn_model = RegressionNN(d=args.p, depth=depth, width=width).to(device)
 far_joint_nn_model = FactorAugmentedNN(p=args.p, r_bar=args.r_bar, depth=depth, width=width,
                                        dp_mat=dp_matrix, fix_dp_mat=False).to(device)
+far_joint_dropout_nn_model = FactorAugmentedNN(p=args.p, r_bar=args.r_bar, depth=depth, width=width,
+                                               dp_mat=dp_matrix, fix_dp_mat=False, input_dropout=True,
+                                               dropout_rate=args.dropout_rate).to(device)
+dropout_nn_model = RegressionNN(d=args.p, depth=depth, width=width, input_dropout=True,
+                                dropout_rate=args.dropout_rate).to(device)
+
 print(f"FAR-NN Model:\n {far_nn_model}")
 print(f"Oracle-NN Model:\n {oracle_nn_model}")
 print(f"Vanilla-NN Model:\n {vanilla_nn_model}")
@@ -106,7 +116,7 @@ num_epoch = 250
 def train_loop(data_loader, model, loss_fn, optimizer):
     loss_sum = 0
     for batch, (x, y) in enumerate(data_loader):
-        pred = model(x)
+        pred = model(x, is_training=True)
         loss = loss_fn(pred, y)
         loss_sum += loss.item()
 
@@ -120,7 +130,7 @@ def test_loop(data_loader, model, loss_fn):
     loss_sum = 0
     with torch.no_grad():
         for x, y in data_loader:
-            pred = model(x)
+            pred = model(x, is_training=False)
             loss_sum += loss_fn(pred, y).item()
     return loss_sum / len(data_loader)
 
@@ -130,8 +140,11 @@ models = {
     'far-nn': far_nn_model,
     'oracle-nn': oracle_nn_model,
     'vanilla-nn': vanilla_nn_model,
-    'far-joint-nn': far_joint_nn_model
+    'joint-nn': far_joint_nn_model,
+    'joint-dropout-nn': far_joint_dropout_nn_model,
+    'dropout-nn': dropout_nn_model
 }
+
 optimizers = {}
 for method_name, model in models.items():
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -165,24 +178,18 @@ def train_one_dim_nn():
                 plt.close()
 
 
-def joint_train():
-    best_valid = {
-        'oracle-nn': 1e9,
-        'far-nn': 1e9,
-        'vanilla-nn': 1e9,
-        'far-joint-nn': 1e9
-    }
-    model_color = {
-        'oracle-nn': Fore.RED,
-        'far-nn': Fore.YELLOW,
-        'vanilla-nn': Fore.BLUE,
-        'far-joint-nn': Fore.GREEN
-    }
+def joint_train(model_names):
+    colors = [Fore.RED, Fore.YELLOW, Fore.BLUE, Fore.GREEN, Fore.CYAN, Fore.LIGHTRED_EX, Fore.LIGHTYELLOW_EX,
+              Fore.LIGHTBLUE_EX, Fore.LIGHTGREEN_EX, Fore.LIGHTCYAN_EX]
+    best_valid, model_color = {}, {}
+    for i, name in enumerate(model_names):
+        best_valid[name] = 1e9
+        model_color[name] = colors[i]
     test_perf = {}
     for epoch in range(num_epoch):
         if epoch % 10 == 0:
             print(f"Epoch {epoch}\n--------------------")
-        for model_name in ['oracle-nn', 'far-nn', 'vanilla-nn', 'far-joint-nn']:
+        for model_name in model_names:
             train_data_loader = train_latent_dataloader if (model_name == 'oracle-nn') else train_obs_dataloader
             train_loss = train_loop(train_data_loader, models[model_name], mse_loss, optimizers[model_name])
             valid_data_loader = valid_latent_dataloader if (model_name == 'oracle-nn') else valid_obs_dataloader
@@ -196,13 +203,24 @@ def joint_train():
                       f"current test loss = {test_loss}")
             if epoch % 10 == 0:
                 print(f"Model [{model_name}]: train L2 error = {train_loss}, valid L2 error = {valid_loss}")
-    result = np.zeros((1, 4))
-    result[0, 0], result[0, 1], result[0, 2], result[0, 3] = \
-        test_perf["oracle-nn"], test_perf["far-nn"], test_perf["vanilla-nn"], test_perf["far-joint-nn"]
+    result = np.zeros((1, len(model_names)))
+    for i, name in enumerate(model_names):
+        result[0, i] = test_perf[name]
     return result
 
 
-end_time = time.time()
-test_l2_error = joint_train()
-np.savetxt(f"logs/exp1/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
-print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
+# Exp 1 Execute
+if args.exp_id == 1:
+    test_l2_error = joint_train(["oracle-nn", "far-nn", "vanilla-nn", "joint-nn"])
+    if len(args.record_dir) > 0:
+        np.savetxt(args.record_dir + f"p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
+    end_time = time.time()
+    print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
+
+
+if args.exp_id == 2:
+    test_l2_error = joint_train(["oracle-nn", "far-nn", "joint-dropout-nn", "dropout-nn"])
+    if len(args.record_dir) > 0:
+        np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
+    end_time = time.time()
+    print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
