@@ -12,7 +12,7 @@ class ParallelLinear(nn.Module):
 	parallel_num: int
 	weight: torch.Tensor
 
-	def __init__(self, in_features: int, out_features: int, parallel_num: int, bias: bool = True,
+	def __init__(self, parallel_num: int, in_features: int, out_features: int, bias: bool = True,
 				 device=None, dtype=None) -> None:
 		factory_kwargs = {'device': device, 'dtype': dtype}
 		super(ParallelLinear, self).__init__()
@@ -34,6 +34,7 @@ class ParallelLinear(nn.Module):
 				self.bias.uniform_(-bound, bound)
 
 	def forward(self, input: torch.Tensor) -> torch.Tensor:
+		# print(f"Parallel Linear: input shape = {input.shape}, weight shape = {self.weight.shape}")
 		return torch.matmul(input, self.weight) + self.bias
 
 	def extra_repr(self) -> str:
@@ -54,6 +55,8 @@ class SparseNeuralAdditiveModels(nn.Module):
 		self.output_trunc_act = nn.Tanh()
 		self.output_trunc_level = output_trunc
 		self.beta = nn.Linear(p, 1, bias=False)
+		with torch.no_grad():
+			self.beta.weight.uniform_(1, 1)
 
 	def forward(self, x, is_training=False):
 		# x.shape: [n, p]
@@ -67,6 +70,7 @@ class SparseNeuralAdditiveModels(nn.Module):
 		x = torch.transpose(x, 0, 1)
 		# x.shape: [n, p, 1]
 		x = self.beta(torch.squeeze(x))
+		# x = torch.sum(x, 1)
 		return x
 
 	def regularization_loss(self):

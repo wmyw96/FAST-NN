@@ -39,10 +39,13 @@ class FactorModel:
         self.r = r
         self.b_f = b_f
         self.b_u = b_u
-        if loadings is None:
-            self.loadings = np.reshape(np.random.uniform(-np.sqrt(3), np.sqrt(3), p * r), (p, r))
+        if r > 0:
+            if loadings is None:
+                self.loadings = np.reshape(np.random.uniform(-np.sqrt(3), np.sqrt(3), p * r), (p, r))
+            else:
+                self.loadings = loadings
         else:
-            self.loadings = loadings
+            self.loadings=None
 
     def sample(self, n, latent=False):
         """
@@ -62,11 +65,14 @@ class FactorModel:
             idiosyncratic_error : np.array
                 [n, p] matrix, idiosyncratic error
         """
-
-        factor = np.reshape(np.random.uniform(-self.b_f, self.b_f, n * self.r), (n, self.r))
+        if self.r > 0:
+            factor = np.reshape(np.random.uniform(-self.b_f, self.b_f, n * self.r), (n, self.r))
         idiosyncratic_error = np.reshape(np.random.uniform(-self.b_u, self.b_u, self.p * n), (n, self.p))
-        obs = np.matmul(factor, np.transpose(self.loadings)) + idiosyncratic_error
-        if latent:
+        if self.r > 0:
+            obs = np.matmul(factor, np.transpose(self.loadings)) + idiosyncratic_error
+        else:
+            obs = idiosyncratic_error
+        if latent and self.r > 0:
             return obs, factor, idiosyncratic_error
         else:
             return obs

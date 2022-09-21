@@ -24,18 +24,25 @@ for i, p in enumerate(cand_p):
 	results = []
 	for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
 		try:
-			results.append(genfromtxt(f"../logs/exp1/p{p}s{s}.csv", delimiter=','))
+			results.append(genfromtxt(f"../logs/exp1-old/p{p}s{s}.csv", delimiter=','))
 		except:
 			print(f"Load Data Error: no record p = {p}, s = {s}")
 	result = np.array(results)
 	l2_loss_matrix_mn[i, :] = np.mean(result, axis=0)
 	l2_loss_matrix_std[i, :] = np.std(result, axis=0)
 
+print(l2_loss_matrix_mn)
+v = l2_loss_matrix_mn[:, 2] + 0.0
+print(v)
+l2_loss_matrix_mn[:, 2] = l2_loss_matrix_mn[:, 3]
+l2_loss_matrix_mn[:, 3] = v
+print(l2_loss_matrix_mn)
+
 model_name = [
 	'Oracle-NN',
 	'FAR-NN',
-	'Vanilla-NN',
-	'NN-Joint'
+	'NN-Joint',
+	'Vanilla-NN'
 ]
 
 plt.figure(figsize=(6, 6))
@@ -49,5 +56,7 @@ plt.xlabel(r"ambient dimension $p$")
 
 plt.yscale("log")
 plt.xscale("log")
+plt.ylim([0.05, 0.65])
+plt.yticks([0.06, 0.1, 0.2, 0.3, 0.5], ['0.06', '0.1', '0.2', '0.3', '0.5'])
 plt.legend()
 plt.show()
