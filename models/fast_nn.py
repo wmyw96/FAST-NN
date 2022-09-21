@@ -5,12 +5,20 @@ from collections import OrderedDict
 
 
 class FactorAugmentedSparseThroughputNN(nn.Module):
-	def __init__(self, p, r_bar, depth, width, dp_mat):
+	def __init__(self, p, r_bar, depth, width, dp_mat, rs_mat=None):
 		super(FactorAugmentedSparseThroughputNN, self).__init__()
 
 		self.diversified_projection = nn.Linear(p, r_bar, bias=False)
 		dp_matrix_tensor = torch.tensor(np.transpose(dp_mat), dtype=torch.float32)
 		self.diversified_projection.weight = nn.Parameter(dp_matrix_tensor, requires_grad=False)
+
+		if rs_mat is not None:
+			print('Reconstruction Part')
+			self.reconstruct = nn.Linear(r_bar, p, bias=False)
+			rs_matrix_tensor = torch.tensor(np.transpose(rs_mat), dtype=torch.float32)
+			self.reconstruct.weight = nn.Parameter(rs_matrix_tensor, requires_grad=False)
+		else:
+			self.reconstruct = None
 
 		self.variable_selection = nn.Linear(p, width, bias=False)
 		relu_nn = [('linear1', nn.Linear(width + r_bar, width)), ('relu1', nn.ReLU())]
@@ -23,13 +31,17 @@ class FactorAugmentedSparseThroughputNN(nn.Module):
 			OrderedDict(relu_nn)
 		)
 
-	def forward(self, x):
+	def forward(self, x, is_training=False):
 		x1 = self.diversified_projection(x)
-		x2 = self.variable_selection(x)
+		if self.reconstruct is not None:
+			x2 = self.variable_selection(x - self.reconstruct(x1))
+		else:
+			x2 = self.variable_selection(x)
 		pred = self.relu_stack(torch.concat((x1, x2), -1))
 		return pred
 
 	def regularization_loss(self, tau):
-		clipped_l1 = torch.clamp(torch.abs(self.variable_selection.weight) / tau, max=1.0)
+		l1_penalty = torch.abs(self.variable_selection.weight) / tau
+		clipped_l1 = torch.clamp(l1_penalty, max=1.0)
+		# input_l1_norm = torch.sum(clipped_l1, 1)   # shape = [width,]
 		return torch.sum(clipped_l1)
-

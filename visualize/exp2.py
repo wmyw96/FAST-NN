@@ -24,7 +24,7 @@ for i, p in enumerate(cand_p):
 	results = []
 	for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
 		try:
-			results.append(genfromtxt(f"../logs/exp2-0.6/p{p}s{s}.csv", delimiter=','))
+			results.append(genfromtxt(f"../logs/exp2-0.8/p{p}s{s}.csv", delimiter=','))
 		except:
 			print(f"Load Data Error: no record rate = {0.6}, p = {p}, s = {s}")
 	result = np.array(results)

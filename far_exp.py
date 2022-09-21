@@ -14,6 +14,8 @@ from scipy.sparse.linalg.eigen.arpack import eigsh as largest_eigsh
 import argparse
 import time
 
+# TODO Re-run exp1
+
 init(autoreset=True)
 parser = argparse.ArgumentParser()
 parser.add_argument("--n", help="number of samples", type=int, default=500)
@@ -146,9 +148,9 @@ models = {
 }
 
 optimizers = {}
-for method_name, model in models.items():
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    optimizers[method_name] = optimizer
+for method_name, model_x in models.items():
+    optimizer_x = torch.optim.Adam(model_x.parameters(), lr=learning_rate)
+    optimizers[method_name] = optimizer_x
 
 
 # setting of plot
@@ -199,8 +201,8 @@ def joint_train(model_names):
                 test_data_loader = test_latent_dataloader if (model_name == 'oracle-nn') else test_obs_dataloader
                 test_loss = test_loop(test_data_loader, models[model_name], mse_loss)
                 test_perf[model_name] = test_loss
-                print(model_color[model_name] + f"Model [{model_name}]: update test loss, best valid loss = {valid_loss}, "
-                      f"current test loss = {test_loss}")
+                print(model_color[model_name] + f"Model [{model_name}]: update test loss, "
+                                                f"best valid loss = {valid_loss}, current test loss = {test_loss}")
             if epoch % 10 == 0:
                 print(f"Model [{model_name}]: train L2 error = {train_loss}, valid L2 error = {valid_loss}")
     result = np.zeros((1, len(model_names)))
@@ -213,7 +215,7 @@ def joint_train(model_names):
 if args.exp_id == 1:
     test_l2_error = joint_train(["oracle-nn", "far-nn", "vanilla-nn", "joint-nn"])
     if len(args.record_dir) > 0:
-        np.savetxt(args.record_dir + f"p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
+        np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
     end_time = time.time()
     print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
 
