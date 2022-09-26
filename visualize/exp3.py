@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from numpy import genfromtxt
+import matplotlib as mpl
 
 # rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
 # plt.style.use('fivethirtyeight')
@@ -16,20 +17,20 @@ color_tuple = [
 	(40 / 255.0, 95 / 255.0, 127 / 255.0),  # dark blue
 	(154 / 255.0, 205 / 255.0, 196 / 255.0),  # pain blue
 ]
-cand_p = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]
-l2_loss_matrix_mn = np.zeros((len(cand_p), 4))
-l2_loss_matrix_std = np.zeros((len(cand_p), 4))
+cand_p = [100, 500, 1000, 5000]
+cand_m = [3, 5, 8, 50]
+l2_loss_matrix_mn = np.zeros((len(cand_p), len(cand_m)))
 
 for i, p in enumerate(cand_p):
-	results = []
-	for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
-		try:
-			results.append(genfromtxt(f"../logs/exp1-old/p{p}s{s}.csv", delimiter=','))
-		except:
-			print(f"Load Data Error: no record p = {p}, s = {s}")
-	result = np.array(results)
-	l2_loss_matrix_mn[i, :] = np.mean(result, axis=0)
-	l2_loss_matrix_std[i, :] = np.std(result, axis=0)
+	for j, m in enumerate(cand_m):
+		results = []
+		for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
+			try:
+				results.append(genfromtxt(f"../logs/exp3/p{p}s{s}m{m}.csv", delimiter=','))
+			except:
+				print(f"Load Data Error: no record p = {p}, s = {s}, m = {m}")
+		result = np.array(results)
+		l2_loss_matrix_mn[i, j] = np.mean(result, axis=0)[1]
 
 print(l2_loss_matrix_mn)
 v = l2_loss_matrix_mn[:, 2] + 0.0
@@ -45,9 +46,23 @@ model_name = [
 	'Vanilla-NN'
 ]
 
+lines = [
+	'dashdot',
+	'dotted',
+	'dashed',
+	'solid'
+]
+
+
+def color_fader(c1, c2, mix=0.0):
+	c1 = np.array(c1)
+	c2 = np.array(c2)
+	return mpl.colors.to_hex((1-mix) * c1 + mix * c2)
+
 plt.figure(figsize=(6, 6))
 for i in range(4):
-	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], label=model_name[i])
+	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_fader(color_tuple[1], color_tuple[3], mix=1-i/3.0),
+			 linestyle=lines[i], label=r'$n_1={}$'.format(cand_m[i]), marker='o')
 # plt.fill_between(np.array(cand_p), l2_loss_matrix_mn[:, i] - l2_loss_matrix_std[:, i],
 # 					l2_loss_matrix_mn[:, i] + l2_loss_matrix_std[:, i], color=color_tuple[i], alpha=0.1)
 
@@ -56,7 +71,7 @@ plt.xlabel(r"ambient dimension $p$")
 
 plt.yscale("log")
 plt.xscale("log")
-plt.ylim([0.05, 0.65])
+# plt.ylim([0.05, 0.65])
 plt.yticks([0.06, 0.1, 0.2, 0.3, 0.5], ['0.06', '0.1', '0.2', '0.3', '0.5'])
 plt.legend()
 plt.show()

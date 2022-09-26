@@ -4,7 +4,7 @@ from matplotlib import rc
 from numpy import genfromtxt
 
 plt.rcParams["font.family"] = "Times New Roman"
-plt.rc('font', size=12)
+plt.rc('font', size=15)
 rc('text', usetex=True)
 
 color_tuple = [
@@ -47,7 +47,7 @@ plt.figure(figsize=(6, 6))
 for i in range(4):
 	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], label=model_name[i])
 
-plt.ylabel(r"estimated $\|\hat{m}-m^*\|_2$")
+plt.ylabel(r"$\widehat{\mathtt{MSE}}$")
 plt.xlabel(r"ambient dimension $p$")
 
 plt.yscale("log")

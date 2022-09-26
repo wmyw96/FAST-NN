@@ -28,6 +28,7 @@ parser.add_argument("--width", help="width of NN", type=int, default=300)
 parser.add_argument("--depth", help="depth of NN", type=int, default=4)
 parser.add_argument("--seed", help="random seed of numpy", type=int, default=1)
 parser.add_argument("--batch_size", help="batch size", type=int, default=64)
+parser.add_argument("--lr", help="learning rate", type=float, default=1e-4)
 parser.add_argument("--dropout_rate", help="dropout rate", type=float, default=0.6)
 parser.add_argument("--exp_id", help="exp id", type=int, default=1)
 parser.add_argument("--record_dir", help="directory to save record", type=str, default="")
@@ -55,6 +56,11 @@ regression_model = AdditiveModel(num_funcs=args.r, normalize=False)
 lfm = FactorModel(p=p, r=args.r, b_f=1, b_u=1)
 print(regression_model)
 
+
+observation, factor, _ = lfm.sample(n=10000, latent=True)
+x, y = observation, regression_model.sample(factor)
+v1 = np.std(y)
+print(v1)
 
 def far_data(n, noise_level=0.0):
     observation, factor, _ = lfm.sample(n=n, latent=True)
@@ -111,7 +117,7 @@ print(f"Vanilla-NN Model:\n {vanilla_nn_model}")
 print(f"FAR-NN Joint Training Model:\n {far_joint_nn_model}")
 
 # training configurations
-learning_rate = 1e-4
+learning_rate = args.lr
 num_epoch = 250
 
 
@@ -224,5 +230,13 @@ if args.exp_id == 2:
     test_l2_error = joint_train(["oracle-nn", "far-nn", "joint-dropout-nn", "dropout-nn"])
     if len(args.record_dir) > 0:
         np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
+    end_time = time.time()
+    print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
+
+
+if args.exp_id == 3:
+    test_l2_error = joint_train(["oracle-nn", "far-nn"])
+    if len(args.record_dir) > 0:
+        np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}m{args.m}.csv", test_l2_error, delimiter=",")
     end_time = time.time()
     print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")

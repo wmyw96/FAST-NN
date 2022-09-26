@@ -143,7 +143,7 @@ print(f"Oracle-NN Model:\n {oracle_nn_model}")
 print(f"Oracle-F-NN Model:\n {oracle_f_nn_model}")
 
 learning_rate = 1e-3
-num_epoch = 200
+num_epoch = 150
 
 
 def train_loop(data_loader, model, loss_fn, optimizer, reg_tau=None):
@@ -213,8 +213,8 @@ def joint_train(model_names):
 		best_valid[name] = 1e9
 		model_color[name] = colors[i]
 	test_perf = {}
-	anneal_rate = (args.hp_tau * 20 - args.hp_tau) / num_epoch
-	anneal_tau = args.hp_tau * 20
+	anneal_rate = (args.hp_tau * 10 - args.hp_tau) / num_epoch
+	anneal_tau = args.hp_tau * 10
 	variable_selection_mat = None
 	for epoch in range(num_epoch):
 		if epoch % 10 == 0:
@@ -248,7 +248,7 @@ def joint_train(model_names):
 				print(f"Model [{model_name}]: \n    (Train)  " + unpack_loss(train_losses) +
 					"\n    (Valid)  " + unpack_loss(valid_losses))
 
-	'''variable_selection_mat = np.abs(variable_selection_mat)
+	variable_selection_mat = np.abs(variable_selection_mat)
 	row_sum = np.max(variable_selection_mat, axis=1)
 	col_sum = np.max(variable_selection_mat, axis=0)
 	print(col_sum)
@@ -261,12 +261,30 @@ def joint_train(model_names):
 		for j in range(40):
 			small_mat[i, j] = variable_selection_mat[sorted_row[i], j]
 
-	df = pd.DataFrame(np.log(small_mat))
-	plt.figure(figsize=(12, 3))
-	p1 = sns.heatmap(df, cmap='Reds')
+	from matplotlib import rc
+	plt.figure(figsize=(12, 4))
+	plt.rcParams["font.family"] = "Times New Roman"
+	plt.rc('font', size=15)
+	rc('text', usetex=True)
+
+	ax = plt.gca()
+	from mpl_toolkits.axes_grid1 import make_axes_locatable
+	im = ax.imshow(np.log(small_mat), cmap="Reds")
+	divider = make_axes_locatable(ax)
+	cax = divider.append_axes("right", size="2%", pad=0.15)
+	cbar = ax.figure.colorbar(im, cax=cax)
+	cbar.ax.tick_params(axis='both', which='major', labelsize=10)
+	cbar.ax.tick_params(axis='both', which='minor', labelsize=10)
+	cbar.ax.set_ylabel(r"$\log|\Theta_{j,i}|$", rotation=-90, va="bottom", fontsize=15)
+	ax.set_xticks(np.arange(40), np.arange(40) + 1, fontsize=10)
+	ax.set_yticks(np.arange(10), np.arange(10) + 1, fontsize=10)
+	ax.set_xlabel(r"rows $j$")
+	ax.set_ylabel(r"columns $i$")
+	#ax.collections[0].colorbar.set_label(r"$|\Theta_{i,j}|$")
+	plt.savefig('a.pdf', bbox_inches='tight', pad_inches=0.05)
 	# plt.savefig(f"figures/vl_mat.pdf")
 	plt.show()
-	# plt.close()'''
+	# plt.close()
 
 	result = np.zeros((1, len(model_names)))
 	for i, name in enumerate(model_names):

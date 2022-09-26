@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 
 class FactorAugmentedSparseThroughputNN(nn.Module):
-	def __init__(self, p, r_bar, depth, width, dp_mat, sparsity=None, rs_mat=None):
+	def __init__(self, p, r_bar, depth, width, dp_mat, rs_mat=None):
 		super(FactorAugmentedSparseThroughputNN, self).__init__()
 
 		self.diversified_projection = nn.Linear(p, r_bar, bias=False)
@@ -20,11 +20,17 @@ class FactorAugmentedSparseThroughputNN(nn.Module):
 		else:
 			self.reconstruct = None
 
-		if sparsity is None:
-			sparsity = width
-		self.variable_selection = nn.Linear(p, sparsity, bias=False)
+		# legacy
+		# self.variable_selection = nn.Linear(p, width, bias=False)
 
-		relu_nn = [('linear1', nn.Linear(r_bar + sparsity, width)), ('relu1', nn.ReLU())]
+		self.variable_selection_logits = nn.Parameter(torch.empty((p, r_bar)))
+		self.scale = nn.Parameter(torch.empty((1, r_bar)))
+		with torch.no_grad():
+			self.scale.uniform_(-1, 1)
+			self.variable_selection_logits.uniform_(-1, 1)
+			print(self.scale.detach().numpy())
+
+		relu_nn = [('linear1', nn.Linear(r_bar + r_bar, width)), ('relu1', nn.ReLU())]
 		for i in range(depth - 1):
 			relu_nn.append(('linear{}'.format(i+2), nn.Linear(width, width)))
 			relu_nn.append(('relu{}'.format(i+2), nn.ReLU()))
@@ -37,14 +43,18 @@ class FactorAugmentedSparseThroughputNN(nn.Module):
 	def forward(self, x, is_training=False):
 		x1 = self.diversified_projection(x)
 		if self.reconstruct is not None:
-			x2 = self.variable_selection(x - self.reconstruct(x1))
+			x2 = torch.matmul(x - self.reconstruct(x1),
+							  torch.nn.functional.softmax(self.variable_selection_logits, dim=1))
+			#x2 = x2 * self.scale
 		else:
-			x2 = self.variable_selection(x)
+			x2 = torch.matmul(x,
+							  torch.nn.functional.softmax(self.variable_selection_logits, dim=1))
+			#x2 = x2 * self.scale
 		pred = self.relu_stack(torch.concat((x1, x2), -1))
 		return pred
 
 	def regularization_loss(self, tau):
-		l1_penalty = torch.abs(self.variable_selection.weight) / tau
+		l1_penalty = torch.abs(self.scale) / tau
 		clipped_l1 = torch.clamp(l1_penalty, max=1.0)
 		# input_l1_norm = torch.sum(clipped_l1, 1)   # shape = [width,]
 		return torch.sum(clipped_l1)
