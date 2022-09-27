@@ -19,10 +19,10 @@ import time
 
 init(autoreset=True)
 parser = argparse.ArgumentParser()
-parser.add_argument("--n", help="number of samples", type=int, default=100)
-parser.add_argument("--p", help="data dimension", type=int, default=15)
+parser.add_argument("--n", help="number of samples", type=int, default=300)
+parser.add_argument("--p", help="data dimension", type=int, default=200)
 parser.add_argument("--s", help="number of important variables", type=int, default=5)
-parser.add_argument("--hp_lambda", help="hyperparameter lambda", type=float, default=100)
+parser.add_argument("--hp_lambda", help="hyperparameter lambda", type=float, default=1)
 parser.add_argument("--width", help="width of NN", type=int, default=64)
 parser.add_argument("--depth", help="depth of NN", type=int, default=3)
 parser.add_argument("--seed", help="random seed of numpy", type=int, default=2)
@@ -45,6 +45,7 @@ n_valid = args.n * 3 // 10
 
 # data generating process
 regression_model = AdditiveModel(num_funcs=args.s, normalize=False)
+print(regression_model)
 xm = FactorModel(p=args.p, r=0, b_f=1, b_u=1)
 
 
@@ -77,17 +78,20 @@ vanilla_nn_model = \
 	RegressionNN(d=args.p, depth=depth, width=width*args.p).to(device)
 
 
-learning_rate = 1e-3
+learning_rate = 5 * 1e-4
 num_epoch = 300
 
 
-def train_loop(data_loader, model, loss_fn, optimizer, l1_reg=False):
+def train_loop(data_loader, model, loss_fn, optimizer, l1_reg=False, anneal_rate=1.0):
 	loss_rec = {'l2_loss': 0.0}
 	if l1_reg:
 		loss_rec['reg_loss'] = 0.0
 		loss_rec['overall_loss'] = 0.0
 	for batch, (x, y) in enumerate(data_loader):
-		pred = model(x, is_training=True)
+		if l1_reg:
+			pred = model(x, is_training=True, anneal=anneal_rate)
+		else:
+			pred = model(x, is_training=True)
 		loss = loss_fn(pred, y)
 		loss_rec['l2_loss'] += loss.item()
 		if l1_reg:
@@ -104,11 +108,14 @@ def train_loop(data_loader, model, loss_fn, optimizer, l1_reg=False):
 	return loss_rec
 
 
-def test_loop(data_loader, model, loss_fn):
+def test_loop(data_loader, model, loss_fn, l1_reg=False, anneal_rate=1.0):
 	loss_sum = 0
 	with torch.no_grad():
 		for x, y in data_loader:
-			pred = model(x, is_training=False)
+			if l1_reg:
+				pred = model(x, is_training=False, anneal=anneal_rate)
+			else:
+				pred = model(x, is_training=False)
 			loss_sum += loss_fn(pred, y).item()
 	loss_rec = {'l2_loss': loss_sum / len(data_loader)}
 	return loss_rec
@@ -135,22 +142,28 @@ if True:
 		best_valid[name] = 1e9
 		model_color[name] = colors[i]
 	test_perf = {}
+	anneal_rate = 1.0
 	for epoch in range(num_epoch):
+		anneal_rate *= (1/0.99)
 		if epoch % 10 == 0:
 			print(f"Epoch {epoch}\n--------------------")
 		for model_name in model_names:
 			use_reg = model_name == 'sparse-nam'
-			train_losses = train_loop(train_obs_dataloader, models[model_name], mse_loss, optimizers[model_name], use_reg)
-			valid_losses = test_loop(valid_obs_dataloader, models[model_name], mse_loss)
+			train_losses = \
+				train_loop(train_obs_dataloader, models[model_name], mse_loss,
+						   optimizers[model_name], use_reg, anneal_rate)
+			valid_losses = test_loop(valid_obs_dataloader, models[model_name], mse_loss, use_reg, anneal_rate)
 			if valid_losses['l2_loss'] < best_valid[model_name]:
 				best_valid[model_name] = valid_losses['l2_loss']
-				test_losses = test_loop(test_obs_dataloader, models[model_name], mse_loss)
+				test_losses = test_loop(test_obs_dataloader, models[model_name], mse_loss, use_reg, anneal_rate)
 				test_perf[model_name] = test_losses['l2_loss']
 				print(model_color[model_name] + f"Model [{model_name}]: update test loss, "
 												f"best valid loss = {valid_losses['l2_loss']}, "
 												f"current test loss = {test_losses['l2_loss']}")
 				if use_reg:
-					print(models[model_name].beta.weight.detach().numpy())
+					with torch.no_grad():
+						beta_weight = torch.nn.functional.softmax(models[model_name].beta_logits * anneal_rate, dim=1)
+						print(beta_weight.detach().numpy())
 			if epoch % 10 == 0:
 				print(f"Model [{model_name}]: \n    (Train)  " + unpack_loss(train_losses) +
 					"\n    (Valid)  " + unpack_loss(valid_losses))

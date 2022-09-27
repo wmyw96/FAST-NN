@@ -32,6 +32,7 @@ class AdditiveModel:
 		self.num_funcs = num_funcs
 		self.func_idx = np.random.randint(0, rd_size, num_funcs)
 		self.func_idx[0] = 4
+		self.func_idx[4] = 4
 		self.normalize = normalize
 
 	def sample(self, x):

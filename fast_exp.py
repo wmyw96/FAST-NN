@@ -3,7 +3,7 @@ import torch
 import random
 import numpy as np
 from torch import nn
-from utils import unpack_loss
+from utils import unpack_loss, visualize_matrix
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -35,7 +35,8 @@ parser.add_argument("--seed", help="random seed of numpy", type=int, default=2)
 parser.add_argument("--batch_size", help="batch size", type=int, default=64)
 parser.add_argument("--hcm_id", help="hcm id", type=int, default=0)
 parser.add_argument("--record_dir", help="directory to save record", type=str, default="")
-
+parser.add_argument("--visualize_mat", help="whether to visualize the variable selection matrix",
+					type=bool, default=False)
 args = parser.parse_args()
 
 start_time = time.time()
@@ -248,25 +249,8 @@ def joint_train(model_names):
 				print(f"Model [{model_name}]: \n    (Train)  " + unpack_loss(train_losses) +
 					"\n    (Valid)  " + unpack_loss(valid_losses))
 
-	'''variable_selection_mat = np.abs(variable_selection_mat)
-	row_sum = np.max(variable_selection_mat, axis=1)
-	col_sum = np.max(variable_selection_mat, axis=0)
-	print(col_sum)
-	sorted_row = np.flip(np.argsort(row_sum))[:10]
-	# sorted_col = np.flip(np.argsort(col_sum))[:50]
-	# print(sorted_col)
-	print(sorted_row)
-	small_mat = np.zeros((10, 40))
-	for i in range(10):
-		for j in range(40):
-			small_mat[i, j] = variable_selection_mat[sorted_row[i], j]
-
-	df = pd.DataFrame(np.log(small_mat))
-	plt.figure(figsize=(12, 3))
-	p1 = sns.heatmap(df, cmap='Reds')
-	# plt.savefig(f"figures/vl_mat.pdf")
-	plt.show()
-	# plt.close()'''
+	if args.visualize_mat:
+		visualize_matrix(variable_selection_mat)
 
 	result = np.zeros((1, len(model_names)))
 	for i, name in enumerate(model_names):

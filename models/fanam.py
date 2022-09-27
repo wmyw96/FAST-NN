@@ -44,7 +44,7 @@ class ParallelLinear(nn.Module):
 
 
 class SparseNeuralAdditiveModels(nn.Module):
-	def __init__(self, p, depth, width, output_trunc=1.0):
+	def __init__(self, p, depth, width, output_trunc=1.0, constrained_r=5.0):
 		super(SparseNeuralAdditiveModels, self).__init__()
 		relu_nn = [('linear{}'.format(1), ParallelLinear(p, 1, width)), ('relu{}'.format(1), nn.ReLU())]
 		for i in range(depth - 1):
@@ -54,11 +54,13 @@ class SparseNeuralAdditiveModels(nn.Module):
 		self.relu_stack = nn.Sequential(OrderedDict(relu_nn))
 		self.output_trunc_act = nn.Tanh()
 		self.output_trunc_level = output_trunc
-		self.beta = nn.Linear(p, 1, bias=False)
+		self.beta_logits = nn.Parameter(torch.empty((1, p)))
+		self.constrained_r = constrained_r
 		with torch.no_grad():
-			self.beta.weight.uniform_(1, 1)
+			self.beta_logits.uniform_(1, 1)
+			print('BETA SOFTMAX {}'.format(torch.nn.functional.softmax(self.beta_logits, dim=1).detach().numpy()))
 
-	def forward(self, x, is_training=False):
+	def forward(self, x, anneal=1.0, is_training=False):
 		# x.shape: [n, p]
 		x = x[:, :, None]
 		# x.shape: [n, p, 1]
@@ -69,12 +71,13 @@ class SparseNeuralAdditiveModels(nn.Module):
 		x = self.output_trunc_level * self.output_trunc_act(x)
 		x = torch.transpose(x, 0, 1)
 		# x.shape: [n, p, 1]
-		x = self.beta(torch.squeeze(x))
-		# x = torch.sum(x, 1)
-		return x
+		x = torch.squeeze(x)
+		# x.shape: [n, p]
+		x = x * torch.nn.functional.softmax(self.beta_logits * anneal, dim=1)
+		return self.constrained_r * torch.sum(x, dim=1, keepdim=True)
 
 	def regularization_loss(self):
-		return torch.sum(torch.abs(self.beta.weight))
+		return torch.sum(torch.abs(torch.nn.functional.softmax(self.beta_logits, dim=1)))
 
 
 class FactorAugmentedNeuralAdditiveModels(nn.Module):
