@@ -1,0 +1,107 @@
+###Read in Data####
+D = read.csv('~/Desktop/pcr_sparse_regression/Real_Data_Final/real_data/realdata_189_126.csv')
+D = D[,-1]
+D<-data.frame(D)
+D=D[,-c(81,83)]
+
+#plot(D[,81])
+nnn = colnames(D)
+##-----------------------------------------------------------------
+library(glmnet)
+#set.seed(1000)
+T = 90  ## train sample size                          
+M = nrow(D)-T  ## predict sample size 
+N = ncol(D)
+Pred.FARM = matrix(0,M,N)                       ## FARM for estimation and prediction
+Pred.FARMLASSO = matrix(0,M,N)                  ## FARM for estimation and LASSO X for prediction
+Pred.MEAN = matrix(0,M,N)                       ## MEAN for prediction
+Pred.PCR = matrix(0,M,N)				## PCR for prediction
+R2.FARM = numeric(N)
+R2.LASSO = numeric(N)
+R2.PCR = numeric(N)
+R2.FARMLASSO = numeric(N)
+Prvalue_FARM=matrix(0,M,N)
+Prvalue_Lasso=matrix(0,M,N)
+Prvalue_FarmLasso=matrix(0,M,N)
+Prvalue_PCR=matrix(0,M,N)
+Prvalue_MEAN=matrix(0,M,N)
+j=81 #set j=49 is the prediction result for HOUSENE
+	X = D[,-j]
+	Y = D[,j]
+	for(i in 1:M){
+		idx = i:(i+T-1)
+		x = X[idx,]
+		y = Y[idx]
+		x.new = X[i+T,]
+		y.new = Y[i+T] 
+##--------------------------------------------------------------------
+		x.mu = colMeans(x)
+		x.sd = as.numeric(apply(x,2,sd))
+		y.mu = mean(y)
+		Prvalue_MEAN[i,j]=	y.mu 
+		y.sd = sd(y)
+		x = t((t(x)-x.mu)/x.sd)                               ## Data normalization
+		y = (y-y.mu)/y.sd
+		x.new = (x.new-x.mu)/x.sd
+		x.new<-unlist(x.new)
+		y.new = (y.new-y.mu)/y.sd
+##--------------------------------------------------------------------
+		Pred.MEAN[i,j] = (y.new*y.sd)^2
+##--------------------------------------------------------------------
+		cv.fit.x = cv.glmnet(x,y,intercept=FALSE)	
+		lambda.fit.x = cv.fit.x$lambda.min
+		print(lambda.fit.x)
+		fit.x = glmnet(x,y,intercept=FALSE,lambda=lambda.fit.x)  ## LASSO estimation
+		beta.hat.x = as.vector(fit.x$beta)
+		Pred.LASSO[i,j] = (y.new-sum(x.new*beta.hat.x))^2*y.sd^2
+		Prvalue_Lasso[i,j]=sum(x.new*beta.hat.x)*y.sd+y.mu
+##--------------------------------------------------------------------
+		Sigma.x = tcrossprod(x)/T
+		eigenx = eigen(Sigma.x)
+		eigvec = eigenx$vectors
+		eigvalue = eigenx$values
+		K.hat = max(which.min(diff(log(eigvalue[1:10]))),4)      ## Factor estimation
+		#K.hat = 5
+		print(K.hat)
+		F.hat = eigvec[,1:K.hat]*sqrt(T)
+		B.hat = t(t(F.hat)%*%x)/T
+		U.hat = x-F.hat%*%t(B.hat)
+##--------------------------------------------------------------------
+		lmY.F = lm(y~F.hat-1)
+		gamma.hat = coef(lmY.F)
+		Y.tilde = resid(lmY.F)                            ## FARM prediction  
+		cv.fit.U = cv.glmnet(U.hat,Y.tilde,intercept=FALSE)	
+		lambda.fit.U = cv.fit.U$lambda.min
+		fit.U = glmnet(U.hat,Y.tilde,intercept=FALSE,lambda=lambda.fit.U)
+		beta.hat.U = as.vector(fit.U$beta)
+##------------------------------------------------------------------------------
+		lmx.B = lm(x.new~B.hat-1)
+		f.new = coef(lmx.B)
+		u.new = resid(lmx.B)
+		Pred.FARM[i,j] = (y.new-sum(f.new*gamma.hat)-sum(u.new*beta.hat.U))^2*y.sd^2
+		Prvalue_FARM[i,j]=(sum(f.new*gamma.hat)+sum(u.new*beta.hat.U))*y.sd+y.mu
+		Pred.FARMLASSO[i,j] = (y.new-sum(x.new*beta.hat.U))^2*y.sd^2
+		Prvalue_FarmLasso[i,j]=(sum(x.new*beta.hat.U))*y.sd+y.mu
+		Pred.PCR[i,j] = (y.new-sum(f.new*gamma.hat))^2*y.sd^2
+		Prvalue_PCR[i,j]=sum(f.new*gamma.hat)*y.sd+y.mu
+	}
+	R2.FARM[j] = 1-sum(Pred.FARM[,j])/sum(Pred.MEAN[,j])	
+	print(R2.FARM[81]) #Output R^2 value for FARM
+	R2.FARMLASSO[j] = 1-sum(Pred.FARMLASSO[,j])/sum(Pred.MEAN[,j])	
+	print(R2.FARMLASSO[81]) #Output R^2 value for Lasso
+	R2.PCR[j] = 1-sum(Pred.PCR[,j])/sum(Pred.MEAN[,j])
+	print(R2.PCR[81])  #Output R^2 value for PCR
+
+	
+	write.csv(Prvalue_MEAN[,81],"~/Desktop/MEAN_predict_189_HOUSTNE.csv") ##store value in csv
+	write.csv(Prvalue_FARM[,81],"~/Desktop/FARM_predict_189_HOUSTNE.csv")
+	write.csv(Prvalue_FarmLasso[,81],"~/Desktop/FARMLasso_predict_189_HOUSTNE.csv")
+	#write.csv(Prvalue_Lasso[,81],"~/Desktop/Lasso_predict_189_GS5.csv")
+	write.csv(Prvalue_PCR[,81],"~/Desktop/PCR_predict_189_HOUSTNE.csv")
+	#R2.FARM #Output R^2 value for FARM
+	#R2.LASSO
+	#R2.PCR #Output R^2 value for PCR
+	#R2.FARMLASSO #Output R^2 value for Lasso
+	
+
+

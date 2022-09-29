@@ -81,6 +81,7 @@ class HierarchicalCompositionModels:
 		y = np.reshape(y, (np.shape(y)[0], 1))
 		return y
 
+
 class RegressionDataset(Dataset):
 	def __init__(self, x, y):
 		self.n = np.shape(x)[0]

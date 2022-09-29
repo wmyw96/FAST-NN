@@ -8,6 +8,12 @@ def unpack_loss(loss_set):
 	return loss_str
 
 
+def get_index_array(l, r):
+	index = []
+	for i in range(r - l + 1):
+		index.append(i + l)
+
+
 def visualize_matrix(mat):
 	variable_selection_mat = np.abs(mat)
 	row_sum = np.max(variable_selection_mat, axis=1)

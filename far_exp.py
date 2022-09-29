@@ -62,6 +62,7 @@ x, y = observation, regression_model.sample(factor)
 v1 = np.std(y)
 print(v1)
 
+
 def far_data(n, noise_level=0.0):
     observation, factor, _ = lfm.sample(n=n, latent=True)
     x, y = observation, regression_model.sample(factor)

@@ -13,7 +13,6 @@ class FactorAugmentedSparseThroughputNN(nn.Module):
 		self.diversified_projection.weight = nn.Parameter(dp_matrix_tensor, requires_grad=False)
 
 		if rs_mat is not None:
-			print('Reconstruction Part')
 			self.reconstruct = nn.Linear(r_bar, p, bias=False)
 			rs_matrix_tensor = torch.tensor(np.transpose(rs_mat), dtype=torch.float32)
 			self.reconstruct.weight = nn.Parameter(rs_matrix_tensor, requires_grad=False)
@@ -43,8 +42,13 @@ class FactorAugmentedSparseThroughputNN(nn.Module):
 		pred = self.relu_stack(torch.concat((x1, x2), -1))
 		return pred
 
-	def regularization_loss(self, tau):
+	def regularization_loss(self, tau, penalize_weights=False):
 		l1_penalty = torch.abs(self.variable_selection.weight) / tau
 		clipped_l1 = torch.clamp(l1_penalty, max=1.0)
 		# input_l1_norm = torch.sum(clipped_l1, 1)   # shape = [width,]
+		if penalize_weights:
+			for param in self.relu_stack.parameters():
+				if len(param.shape) > 1:
+					# print(param.shape)
+					clipped_l1 += 0.5 #* torch.sum(torch.square(param))
 		return torch.sum(clipped_l1)
