@@ -1,8 +1,8 @@
 ###Read in Data####
 D = read.csv('transformed_modern.csv')
-#D = D[,-1]
+D = D[,-1]
 D<-data.frame(D)
-#D=D[,-c(81,83)]
+D=D[,-c(81,83)]
 
 #plot(D[,81])
 nnn = colnames(D)

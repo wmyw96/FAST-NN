@@ -5,12 +5,16 @@ from fast_nn_estimator import *
 import numpy as np
 import random
 import time
+from colorama import init, Fore
 
 
 corpus = fred_md_data('data/FRED-MD/transformed_modern.csv')
 n = corpus.valid_n
 print(n)
 seed = 4869
+np.random.seed(seed)
+torch.manual_seed(seed)
+random.seed(seed)
 
 
 def get_index_array(l, r):
@@ -34,13 +38,13 @@ n_windows = n - window_size
 y_value = np.zeros((p, n_windows, 6))
 r2 = np.zeros((p, 4))
 
-model_names = ['FARM', 'Lasso', 'PCR']
+model_names = ['FAST', 'FARM', 'Lasso', 'PCR']
 
 start_time = time.time()
+init(autoreset=True)
 
-#if True:
-for pred_idx in range(p):
-	#pred_idx = 28 # work case: 28
+if True:
+	pred_idx = 4 # work case: 28
 	print(f'======================================== {pred_idx} ========================================')
 	rss = {}
 	for model_name in model_names:
@@ -62,7 +66,6 @@ for pred_idx in range(p):
 		test_x, test_y = split_x_y(test, pred_idx)
 
 		# exact value of y
-		#test_y = test_y * y_std + y_mn
 		tss += np.mean(np.square(test_y - y_mn)) * (y_std ** 2)
 
 		info_str = "R^2 stat:  "
@@ -78,7 +81,7 @@ for pred_idx in range(p):
 			if model_name == 'PCR':
 				model = PCR()
 			if model_name == 'FAST':
-				model = NNEstimator(4)
+				model = NNEstimator(5)
 
 			pred = model.fit_and_predict(train_x, train_y, valid_x, valid_y, test_x) # * y_std + y_mn
 			rss[model_name] += np.mean(np.square(test_y - pred)) * (y_std ** 2)
@@ -86,10 +89,10 @@ for pred_idx in range(p):
 			info_str += f"({model_name}) {1 - rss[model_name]/tss}    "
 			y_value[pred_idx, i, k + 2] = pred * y_std + y_mn
 			r2[pred_idx, k] = 1 - rss[model_name]/tss
-		print(info_str)
+		print(Fore.YELLOW + info_str)
 		#exit(0)
-	np.save('y_value.npy', y_value)
-	np.savetxt('r2.csv', r2)
+	#np.save('y_value.npy', y_value)
+	#np.savetxt('r2.txt', r2)
 
 print(f'End: time = {time.time() - start_time}')
 #np.save('y_value.npy', y_value)

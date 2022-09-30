@@ -66,16 +66,49 @@ class NNEstimator:
 		self.depth = 3
 		self.width = 32
 		self.hp_tau = 1e-1
+		self.n_ensemble = 3
+		self.p = None
 		self.choice_lambda = [10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01,
 							  0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001]
+		self.dp_matrix = None
+		self.rs_matrix = None
 		#self.choice_large_lambda = [0.2, 0.5, 1]
 		#self.choice_small_lambda = [0.001, 0.0005, 0.0002, 0.0001]
+
+	def single_fit_and_predict(self, train_data_loader, valid_data_loader, test_x, reg_lambda):
+		device = "cuda" if torch.cuda.is_available() else "cpu"
+		nn_model = \
+			FactorAugmentedSparseThroughputNN(p=self.p, r_bar=self.r_bar, depth=self.depth,
+											width=self.width, sparsity=self.r_bar,
+											dp_mat=self.dp_matrix, rs_mat=self.rs_matrix).to(device)
+		anneal_rate = (self.hp_tau * 10 - self.hp_tau) / self.num_epoch
+		anneal_tau = self.hp_tau * 10
+
+		mse_loss = nn.MSELoss()
+		optimizer = torch.optim.Adam(nn_model.parameters(), lr=self.learning_rate)
+		scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.999)
+
+		cur_valid = 1e9
+		last_update = 1e9
+		for epoch in range(self.num_epoch):
+			anneal_tau -= anneal_rate
+			train_losses = train_loop(train_data_loader, nn_model, mse_loss, optimizer, reg_lambda, anneal_tau)
+			scheduler.step()
+			valid_losses = test_loop(valid_data_loader, nn_model, mse_loss, reg_lambda, anneal_tau)
+			if valid_losses['l2_loss'] < cur_valid:
+				cur_valid = valid_losses['l2_loss']
+				last_update = epoch
+				with torch.no_grad():
+					test_y = nn_model(torch.tensor(test_x, dtype=torch.float32)).detach().numpy()
+		print(f'[FAST-NN] lambda = {reg_lambda}, last_update = {last_update}, valid loss = {cur_valid}')
+		return cur_valid, test_y
 
 	def model_fit_and_predict(self, x, y, valid_x, valid_y, test_x, candidate_lambda):
 		dp_matrix, rs_matrix = calculate_predefined_matrix(x, self.r_bar)
 		# x shape = [n, p]
 		# y shape = [p]
-
+		self.p = np.shape(x)[1]
+		self.dp_matrix, self.rs_matrix = dp_matrix, rs_matrix
 		y_ex = np.reshape(y, (np.shape(y)[0], 1))
 		valid_y_ex = np.reshape(valid_y, (np.shape(valid_y)[0], 1))
 
@@ -85,41 +118,24 @@ class NNEstimator:
 		torch_valid = RegressionDataset(valid_x, valid_y_ex)
 		valid_data_loader = DataLoader(torch_valid, batch_size=np.shape(valid_x)[0])
 
-		device = "cuda" if torch.cuda.is_available() else "cpu"
-
 		best_valid = 1e9
 		best_lambda = None
 		test_y = None
 		for reg_lambda in candidate_lambda:
 			# create model
-			nn_model = \
-				FactorAugmentedSparseThroughputNN(p=np.shape(x)[1], r_bar=self.r_bar, depth=self.depth,
-					width=self.width, sparsity=self.r_bar, dp_mat=dp_matrix, rs_mat=rs_matrix).to(device)
-			anneal_rate = (self.hp_tau * 10 - self.hp_tau) / self.num_epoch
-			anneal_tau = self.hp_tau * 10
-
-			mse_loss = nn.MSELoss()
-			optimizer = torch.optim.Adam(nn_model.parameters(), lr=self.learning_rate)
-			scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.999)
-
-			cur_valid = 1e9
-			for epoch in range(self.num_epoch):
-				anneal_tau -= anneal_rate
-				train_losses = train_loop(train_data_loader, nn_model, mse_loss, optimizer, reg_lambda, anneal_tau)
-				scheduler.step()
-				valid_losses = test_loop(valid_data_loader, nn_model, mse_loss, reg_lambda, anneal_tau)
-				cur_valid = min(valid_losses['l2_loss'], cur_valid)
-				if valid_losses['l2_loss'] < best_valid:
-					best_valid = valid_losses['l2_loss']
-					best_lambda = reg_lambda
-					with torch.no_grad():
-						test_y = nn_model(torch.tensor(test_x, dtype=torch.float32)).detach().numpy()
-					#print(f"Model [FAST-NN {reg_lambda}]: update test loss, "
-					#						f"best valid loss = {valid_losses['l2_loss']}\n")
-				#if epoch % 10 == 0:
-				#	print(f"Model [FAST-NN {reg_lambda}]: \n    (Train)  " + unpack_loss(train_losses) +
-				#		"\n    (Valid)  " + unpack_loss(valid_losses))
-			print(f'[FAST-NN] lambda = {reg_lambda}, valid loss = {cur_valid}')
+			valid_error = 0.0
+			y_pred = 0.0
+			for t in range(self.n_ensemble):
+				valid_error_, y_pred_ = \
+					self.single_fit_and_predict(train_data_loader, valid_data_loader, test_x, reg_lambda)
+				valid_error += valid_error_
+				y_pred += y_pred_
+			valid_error /= self.n_ensemble
+			y_pred /= self.n_ensemble
+			if best_valid > valid_error:
+				best_valid = valid_error
+				best_lambda = reg_lambda
+				test_y = y_pred
 		return best_valid, best_lambda, test_y
 
 	def fit_and_predict(self, x, y, valid_x, valid_y, test_x):

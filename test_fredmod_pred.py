@@ -5,12 +5,12 @@ from fast_nn_estimator import *
 import numpy as np
 import random
 import time
+from colorama import init, Fore
 
 
 corpus = fred_md_data('data/FRED-MD/transformed_modern.csv')
-n = corpus.valid_n
-print(n)
-seed = 4869
+n_total = corpus.valid_n
+print(n_total)
 
 
 def get_index_array(l, r):
@@ -30,16 +30,20 @@ def split_x_y(data_corpus, idx):
 window_size = 120
 
 p = np.shape(corpus.data)[1]
-n_windows = n - window_size
+n_windows = n_total - window_size
 y_value = np.zeros((p, n_windows, 6))
 r2 = np.zeros((p, 4))
 
 model_names = ['FARM', 'Lasso', 'PCR']
+init(autoreset=True)
 
 start_time = time.time()
+seed = 4869
 
-#if True:
 for pred_idx in range(p):
+	corpus = fred_md_data('data/FRED-MD/transformed_modern.csv', pred_index=pred_idx)
+	print(f'number of data = {corpus.valid_n} / {n_total}')
+
 	#pred_idx = 28 # work case: 28
 	print(f'======================================== {pred_idx} ========================================')
 	rss = {}
@@ -50,16 +54,16 @@ for pred_idx in range(p):
 	torch.manual_seed(seed)
 	random.seed(seed)
 
-	for i in range(n - window_size):
+	for i in range(corpus.valid_n - window_size):
 		train, valid, test, mn_stat, std_stat = \
 			corpus.get_split_data(get_index_array(i, i + window_size - 1),
 								  get_index_array(i + window_size, i + window_size))
-		y_std = std_stat[0, pred_idx]
-		y_mn = mn_stat[0, pred_idx]
-		train_x, train_y = split_x_y(train, pred_idx)
+		y_std = std_stat[0, 0]
+		y_mn = mn_stat[0, 0]
+		train_x, train_y = split_x_y(train, 0)
 		assert np.abs(np.mean(train_y)) < 1e-9
-		valid_x, valid_y = split_x_y(valid, pred_idx)
-		test_x, test_y = split_x_y(test, pred_idx)
+		valid_x, valid_y = split_x_y(valid, 0)
+		test_x, test_y = split_x_y(test, 0)
 
 		# exact value of y
 		#test_y = test_y * y_std + y_mn
@@ -86,7 +90,7 @@ for pred_idx in range(p):
 			info_str += f"({model_name}) {1 - rss[model_name]/tss}    "
 			y_value[pred_idx, i, k + 2] = pred * y_std + y_mn
 			r2[pred_idx, k] = 1 - rss[model_name]/tss
-		print(info_str)
+		print(Fore.YELLOW + info_str)
 		#exit(0)
 	np.save('y_value.npy', y_value)
 	np.savetxt('r2.csv', r2)

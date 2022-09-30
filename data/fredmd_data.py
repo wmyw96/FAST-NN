@@ -3,14 +3,16 @@ from numpy import genfromtxt
 
 
 class fred_md_data:
-	def __init__(self, file_name='transfromed_data.csv', ):
+	def __init__(self, file_name='transfromed_data.csv', pred_index=None):
 		self.data = genfromtxt(file_name, delimiter=',')
-		#self.data = self.data[:,1:]
-		#self.data = np.delete(self.data, [80, 82], 1)
+		self.pred_index = pred_index
+		if pred_index is not None:
+			n = np.shape(self.data)[0]
+			covariate = self.data[0:n-1, :]
+			response = self.data[1:, pred_index:pred_index+1]
+			self.data = np.concatenate([response, covariate], 1)
+
 		nan_indicator = (np.isnan(self.data))
-		# print(nan_indicator[:, 3])
-		# print(np.sum(nan_indicator, axis=0))
-		# print(np.shape(nan_indicator))
 		self.valid_rows = (np.sum(nan_indicator, axis=1, keepdims=True) == 0)
 		self.n = np.shape(self.data)[0]
 		self.valid_n = np.sum(self.valid_rows)
@@ -22,10 +24,10 @@ class fred_md_data:
 		self.valid_data = np.array(valid_data)
 
 		# print summary statistics
-		print('(FRED-MD dataset) Mean Stat:')
-		print(np.mean(self.valid_data, 0))
-		print('(FRED-MD dataset) Std Stat:')
-		print(np.std(self.valid_data, 0))
+		# print('(FRED-MD dataset) Mean Stat:')
+		# print(np.mean(self.valid_data, 0))
+		# print('(FRED-MD dataset) Std Stat:')
+		# print(np.std(self.valid_data, 0))
 
 	def get_data(self, train_idx, test_idx, normalize=True):
 		train_data = self.valid_data[train_idx, :]
