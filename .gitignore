@@ -4,5 +4,5 @@ figures/
 *.pyc
 data/__pycache__/
 logs/
-
+exp_results/
 

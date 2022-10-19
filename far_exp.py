@@ -119,7 +119,7 @@ print(f"FAR-NN Joint Training Model:\n {far_joint_nn_model}")
 
 # training configurations
 learning_rate = args.lr
-num_epoch = 250
+num_epoch = 200
 
 
 def train_loop(data_loader, model, loss_fn, optimizer):
@@ -203,7 +203,7 @@ def joint_train(model_names):
             train_loss = train_loop(train_data_loader, models[model_name], mse_loss, optimizers[model_name])
             valid_data_loader = valid_latent_dataloader if (model_name == 'oracle-nn') else valid_obs_dataloader
             valid_loss = test_loop(valid_data_loader, models[model_name], mse_loss)
-            if valid_loss < best_valid[model_name]:
+            if valid_loss < best_valid[model_name] and epoch >= 100:
                 best_valid[model_name] = valid_loss
                 test_data_loader = test_latent_dataloader if (model_name == 'oracle-nn') else test_obs_dataloader
                 test_loss = test_loop(test_data_loader, models[model_name], mse_loss)
@@ -228,7 +228,7 @@ if args.exp_id == 1:
 
 
 if args.exp_id == 2:
-    test_l2_error = joint_train(["oracle-nn", "far-nn", "joint-dropout-nn", "dropout-nn"])
+    test_l2_error = joint_train(["joint-dropout-nn", "dropout-nn"])
     if len(args.record_dir) > 0:
         np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
     end_time = time.time()

@@ -16,13 +16,13 @@ color_tuple = [
 	(40 / 255.0, 95 / 255.0, 127 / 255.0),  # dark blue
 	(154 / 255.0, 205 / 255.0, 196 / 255.0),  # pain blue
 ]
-cand_p = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000]
+cand_p = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000]
 l2_loss_matrix_mn = np.zeros((len(cand_p), 4))
 l2_loss_matrix_std = np.zeros((len(cand_p), 4))
 
 for i, p in enumerate(cand_p):
 	results = []
-	for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
+	for s in range(200):
 		try:
 			results.append(genfromtxt(f"../logs/exp1-old/p{p}s{s}.csv", delimiter=','))
 		except:
@@ -45,9 +45,17 @@ model_name = [
 	'Vanilla-NN'
 ]
 
+lines = [
+	'dashed',
+	'solid',
+	'solid',
+	'solid'
+]
+
+
 plt.figure(figsize=(6, 6))
-for i in range(4):
-	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], label=model_name[i])
+for i in range(2):
+	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], linestyle=lines[i], label=model_name[i])
 # plt.fill_between(np.array(cand_p), l2_loss_matrix_mn[:, i] - l2_loss_matrix_std[:, i],
 # 					l2_loss_matrix_mn[:, i] + l2_loss_matrix_std[:, i], color=color_tuple[i], alpha=0.1)
 
@@ -56,7 +64,7 @@ plt.xlabel(r"ambient dimension $p$")
 
 plt.yscale("log")
 plt.xscale("log")
-plt.ylim([0.05, 0.65])
-plt.yticks([0.06, 0.1, 0.2, 0.3, 0.5], ['0.06', '0.1', '0.2', '0.3', '0.5'])
+plt.ylim([0.06, 0.75])
+plt.yticks([0.08, 0.1, 0.2, 0.3, 0.6], ['0.08', '0.1', '0.2', '0.3', '0.6'])
 plt.legend()
 plt.show()

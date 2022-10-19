@@ -43,8 +43,9 @@ model_names = ['FAST', 'FARM', 'Lasso', 'PCR']
 start_time = time.time()
 init(autoreset=True)
 
-for pred_idx in range(p):
-	corpus = fred_md_data('data/FRED-MD/transformed_modern.csv', pred_index=pred_idx)
+pred_idx = 41
+if True:
+#for pred_idx in range(p):
 	print(f'======================================== {pred_idx} ========================================')
 	rss = {}
 	for model_name in model_names:
@@ -54,9 +55,9 @@ for pred_idx in range(p):
 	torch.manual_seed(seed)
 	random.seed(seed)
 
-	if True:
+	for t in range(30):
 		i = 0
-		idx = 0
+		idx = pred_idx
 		train, valid, test, mn_stat, std_stat = \
 			corpus.get_split_data(get_index_array(i, i + window_size - 1),
 								  get_index_array(i + window_size, corpus.valid_n - 1))
@@ -91,9 +92,16 @@ for pred_idx in range(p):
 			#y_value[pred_idx, i, k + 2] = pred * y_std + y_mn
 			# for select important variable p
 			# r2[pred_idx, k] = 1 - rss[model_name]/tss
-			r2[pred_idx, k] = 1 - rss[model_name] / tss
+			r2[t, k] = 1 - rss[model_name] / tss
 		print(Fore.YELLOW + info_str)
-	np.savetxt('r2_pred.txt', r2)
+		print(np.mean(r2[:(t+1), :], 0))
+	np.savetxt(f'r2_cross_{pred_idx}.txt', r2)
 
 print(f'End: time = {time.time() - start_time}')
 #np.save('y_value.npy', y_value)
+'''
+%28 [0.87571377 0.77105085 0.77397928 0.06040903]
+%75 [ 0.71924947  0.56223664  0.5853106  -0.6144707 ]
+%87 [0.89200582 0.80045674 0.81299341 0.49238774]
+%88 [0.92753169 0.89462311 0.8723091  0.54166652] 
+'''

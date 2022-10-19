@@ -24,7 +24,7 @@ l2_loss_matrix_mn = np.zeros((len(cand_p), len(cand_m)))
 for i, p in enumerate(cand_p):
 	for j, m in enumerate(cand_m):
 		results = []
-		for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
+		for s in range(200):
 			try:
 				results.append(genfromtxt(f"../logs/exp3/p{p}s{s}m{m}.csv", delimiter=','))
 			except:

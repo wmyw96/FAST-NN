@@ -14,6 +14,12 @@ class fred_md_data:
 
 		nan_indicator = (np.isnan(self.data))
 		self.valid_rows = (np.sum(nan_indicator, axis=1, keepdims=True) == 0)
+		cnt = 0
+		for i in range(np.shape(self.data)[0]):
+			if self.valid_rows[i]:
+				cnt += 1
+				if cnt == 200:
+					print(i)
 		self.n = np.shape(self.data)[0]
 		self.valid_n = np.sum(self.valid_rows)
 		print(f"(FRED-MD dataset): number of data = {self.n}, number of valid data = {np.sum(self.valid_rows)}")

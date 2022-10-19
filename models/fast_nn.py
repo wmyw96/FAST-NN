@@ -49,6 +49,5 @@ class FactorAugmentedSparseThroughputNN(nn.Module):
 		if penalize_weights:
 			for param in self.relu_stack.parameters():
 				if len(param.shape) > 1:
-					# print(param.shape)
-					clipped_l1 += 0.5 #* torch.sum(torch.square(param))
+					clipped_l1 += 0.001 * torch.sum(torch.abs(param))
 		return torch.sum(clipped_l1)

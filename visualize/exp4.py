@@ -20,23 +20,30 @@ l2_loss_matrix_mn = np.zeros((len(cand_p), 3))
 
 for i, p in enumerate(cand_p):
 	results = []
-	for s in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]:
+	for s in range(200):
 		try:
-			results.append(genfromtxt(f"../logs/exp4-hcm0/p{p}s{s}.csv", delimiter=','))
+			results.append(genfromtxt(f"../logs/exp4-hcm0-m200/p{p}s{s}.csv", delimiter=','))
 		except:
 			print(f"Load Data Error: no record p = {p}, s = {s}")
 	result = np.array(results)
 	l2_loss_matrix_mn[i, :] = np.mean(result, axis=0)
 
+
+lines = [
+	'dashed',
+	'solid',
+	'dashed',
+]
+
 model_name = [
 	'Oracle-NN',
-	'FAR-NN',
+	'FAST-NN',
 	'Oracle-Factor-NN',
 ]
 
 plt.figure(figsize=(6, 6))
 for i in range(3):
-	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], label=model_name[i])
+	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], linestyle=lines[i], label=model_name[i])
 
 plt.ylabel(r"$\widehat{\mathtt{MSE}}$")
 plt.xlabel(r"ambient dimension $p$")
@@ -47,7 +54,7 @@ plt.xscale("log")
 plt.ylim([0.01, 5])
 plt.yticks([0.02, 0.05, 0.12, 1.6], ['0.02', '0.05', '0.12', '1.6'])
 # setting: HCM 3
-#plt.ylim([0.03, 5])
-#plt.yticks([0.05, 0.15, 0.2, 0.3, 1.5], ['0.05', '0.15', '0.2', '0.3', '1.5'])
+# plt.ylim([0.03, 5])
+# plt.yticks([0.05, 0.15, 0.2, 0.3, 1.5], ['0.05', '0.15', '0.2', '0.3', '1.5'])
 plt.legend()
 plt.show()

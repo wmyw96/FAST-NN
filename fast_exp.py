@@ -144,7 +144,7 @@ print(f"Oracle-NN Model:\n {oracle_nn_model}")
 print(f"Oracle-F-NN Model:\n {oracle_f_nn_model}")
 
 learning_rate = 1e-3
-num_epoch = 200
+num_epoch = 100
 
 
 def train_loop(data_loader, model, loss_fn, optimizer, reg_tau=None):
@@ -251,6 +251,8 @@ def joint_train(model_names):
 
 	if args.visualize_mat:
 		visualize_matrix(variable_selection_mat)
+	# hcm3: python fast_exp.py --hcm_id 3 --p 1000 --visualize_mat True --seed 4 --m 200 --hp_tau 0.005
+	# hcm1: standard
 
 	result = np.zeros((1, len(model_names)))
 	for i, name in enumerate(model_names):

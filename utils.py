@@ -1,5 +1,5 @@
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 def unpack_loss(loss_set):
 	loss_str = ""
@@ -26,7 +26,7 @@ def visualize_matrix(mat):
 	small_mat = np.zeros((10, 40))
 	for i in range(10):
 		for j in range(40):
-			small_mat[i, j] = variable_selection_mat[sorted_row[i], j]
+			small_mat[i, j] = variable_selection_mat[i, j]
 
 	from matplotlib import rc
 	plt.figure(figsize=(12, 4))
@@ -42,11 +42,11 @@ def visualize_matrix(mat):
 	cbar = ax.figure.colorbar(im, cax=cax)
 	cbar.ax.tick_params(axis='both', which='major', labelsize=10)
 	cbar.ax.tick_params(axis='both', which='minor', labelsize=10)
-	cbar.ax.set_ylabel(r"$\log|\Theta_{j,i}|$", rotation=-90, va="bottom", fontsize=15)
+	cbar.ax.set_ylabel(r"$\log|[\hat{\Theta}^\top]_{i,j}|$", rotation=-90, va="bottom", fontsize=15)
 	ax.set_xticks(np.arange(40), np.arange(40) + 1, fontsize=10)
 	ax.set_yticks(np.arange(10), np.arange(10) + 1, fontsize=10)
-	ax.set_xlabel(r"rows $j$")
-	ax.set_ylabel(r"columns $i$")
+	ax.set_xlabel(r"column $j$")
+	ax.set_ylabel(r"row $i$")
 
 	plt.savefig('a.pdf', bbox_inches='tight', pad_inches=0.05)
 	plt.show()

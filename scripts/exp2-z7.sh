@@ -3,6 +3,6 @@ do
 		for s in {0..199}
 		do
 			echo $p $s
-			python far_exp.py --p $p --seed $s --exp_id 1 --record_dir logs/exp1-old
+			python far_exp.py --p $p --seed $s --exp_id 2 --dropout_rate 0.7 --record_dir logs/exp2-0.7
 		done
 done
