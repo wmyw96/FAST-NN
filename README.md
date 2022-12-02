@@ -8,9 +8,9 @@ We use `python==3.9`, pytorch with version `1.12.1` and numpy with version `1.21
 
 To create folders to restore the experiments settings, use the following command in `FAST-NN/` directory.
 
-''
+```
 mkdir logs
-''
+```
 
 ### Exp 1: Performance of FAR-NN Estimator
 
