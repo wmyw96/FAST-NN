@@ -1,4 +1,4 @@
-## Scripts for the paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'
+## Scripts for our paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'
 
 This repo contains scripts of simulation and real data analysis for our paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'. This README file provide instructions to reproduce the result in numerical studies section of our paper.
 
