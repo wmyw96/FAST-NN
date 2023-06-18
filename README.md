@@ -4,7 +4,7 @@ This repo contains scripts of simulation and real data analysis for our paper 'F
 
 ### Environment and Setup
 
-We use `python==3.9`, pytorch with version `1.12.1` and numpy with version `1.21.5`.
+We use `python==3.9`, pytorch with version `1.12.1` and numpy with version `1.21.5`. Other dependencies can be found in `environment.yml`.
 
 To create folders to restore the experiments settings, use the following command in `FAST-NN/` directory.
 
