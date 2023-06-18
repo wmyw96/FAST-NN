@@ -69,21 +69,20 @@ class NNEstimator:
 		self.hp_tau = 1e-1
 		self.n_ensemble = 1
 		self.p = None
-		#self.choice_lambda = [0.5, 0.2, 0.1, 0.05, 0.02, 0.01,
-		#					  0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001]
-		self.choice_lambda = [0]
+		self.choice_lambda = [0.5, 0.2, 0.1, 0.05, 0.02, 0.01,
+							  0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001]
+		#self.choice_lambda = [0]
 		self.dp_matrix = None
 		self.rs_matrix = None
-		#self.choice_large_lambda = [0.2, 0.5, 1]
-		#self.choice_small_lambda = [0.001, 0.0005, 0.0002, 0.0001]
+		self.choice_large_lambda = [0.2, 0.5, 1]
+		self.choice_small_lambda = [0.001, 0.0005, 0.0002, 0.0001]
 
 	def single_fit_and_predict(self, train_data_loader, valid_data_loader, test_x, reg_lambda):
 		device = "cuda" if torch.cuda.is_available() else "cpu"
 		nn_model = \
-			FactorAugmentedNN(p=self.p, r_bar=self.r_bar, depth=self.depth, width=self.width, dp_mat=self.dp_matrix, fix_dp_mat=True).to(device)
-		#	FactorAugmentedSparseThroughputNN(p=self.p, r_bar=self.r_bar, depth=self.depth,
-		#									width=self.width, sparsity=self.r_bar,
-		#									dp_mat=self.dp_matrix, rs_mat=self.rs_matrix).to(device)
+			FactorAugmentedSparseThroughputNN(p=self.p, r_bar=self.r_bar, depth=self.depth,
+											width=self.width, sparsity=self.r_bar,
+											dp_mat=self.dp_matrix, rs_mat=self.rs_matrix).to(device)
 		anneal_rate = (self.hp_tau * 10 - self.hp_tau) / self.num_epoch
 		anneal_tau = self.hp_tau * 10
 
@@ -95,15 +94,15 @@ class NNEstimator:
 		last_update = 1e9
 		for epoch in range(self.num_epoch):
 			anneal_tau -= anneal_rate
-			train_losses = train_loop(train_data_loader, nn_model, mse_loss, optimizer, reg_lambda, None)
+			train_losses = train_loop(train_data_loader, nn_model, mse_loss, optimizer, reg_lambda, anneal_tau)
 			scheduler.step()
-			valid_losses = test_loop(valid_data_loader, nn_model, mse_loss, reg_lambda, None)
+			valid_losses = test_loop(valid_data_loader, nn_model, mse_loss, reg_lambda, anneal_tau)
 			if valid_losses['l2_loss'] < cur_valid:
 				cur_valid = valid_losses['l2_loss']
 				last_update = epoch
 				with torch.no_grad():
 					test_y = nn_model(torch.tensor(test_x, dtype=torch.float32)).detach().numpy()
-		print(f'[FAR-NN] lambda = {reg_lambda}, last_update = {last_update}, valid loss = {cur_valid}')
+		print(f'[FAST-NN] lambda = {reg_lambda}, last_update = {last_update}, valid loss = {cur_valid}')
 		return cur_valid, test_y
 
 	def model_fit_and_predict(self, x, y, valid_x, valid_y, test_x, candidate_lambda):
@@ -144,5 +143,5 @@ class NNEstimator:
 	def fit_and_predict(self, x, y, valid_x, valid_y, test_x):
 		best_valid, best_lambda, test_y = self.model_fit_and_predict(x, y, valid_x, valid_y, test_x, self.choice_lambda)
 		test_y = np.reshape(test_y, (np.shape(test_y)[0],))
-		print(f"(FAR-NN Estimator) best alpha = {best_lambda}, valid mse = {best_valid}")
+		print(f"(FAST-NN Estimator) best alpha = {best_lambda}, valid mse = {best_valid}")
 		return test_y

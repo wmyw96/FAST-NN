@@ -7,6 +7,13 @@ import random
 import time
 from colorama import init, Fore
 
+import argparse
+import time
+
+init(autoreset=True)
+parser = argparse.ArgumentParser()
+parser.add_argument("--idx", help="prediction index", type=int, default=1000)
+args = parser.parse_args()
 
 corpus = fred_md_data('data/FRED-MD/transformed_modern.csv')
 n = corpus.valid_n
@@ -34,18 +41,15 @@ def split_x_y(data_corpus, idx):
 window_size = 200
 
 p = np.shape(corpus.data)[1]
-n_windows = n - window_size
-y_value = np.zeros((p, n_windows, 6))
-r2 = np.zeros((p, 4))
+r2 = np.zeros((30, 4))
 
 model_names = ['FAST', 'FARM', 'Lasso', 'PCR']
 
 start_time = time.time()
 init(autoreset=True)
 
-pred_idx = 88
+pred_idx = args.idx
 if True:
-#for pred_idx in range(p):
 	print(f'======================================== {pred_idx} ========================================')
 	rss = {}
 	for model_name in model_names:
@@ -87,15 +91,14 @@ if True:
 
 			pred = model.fit_and_predict(train_x, train_y, valid_x, valid_y, test_x) # * y_std + y_mn
 			rss[model_name] += np.mean(np.square(test_y - pred)) * (y_std ** 2)
-			print(f'timestep {i}, true = {test_y}, model ({model_name}) = {pred}')
+			#print(f'timestep {i}, true = {test_y}, model ({model_name}) = {pred}')
 			info_str += f"({model_name}) {1 - rss[model_name]/tss}    "
-			#y_value[pred_idx, i, k + 2] = pred * y_std + y_mn
-			# for select important variable p
-			# r2[pred_idx, k] = 1 - rss[model_name]/tss
 			r2[t, k] = 1 - rss[model_name] / tss
 		print(Fore.YELLOW + info_str)
-		print(np.mean(r2[:(t+1), :], 0))
 	np.savetxt(f'r2_cross_{pred_idx}.txt', r2)
+
+for i, name in enumerate(model_names):
+	print('{} : {}'.format(name, np.mean(r2[:, i])))
 
 print(f'End: time = {time.time() - start_time}')
 #np.save('y_value.npy', y_value)

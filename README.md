@@ -1,6 +1,6 @@
 ## Scripts for our paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'
 
-This repo contains scripts of simulation and real data analysis for our paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'. This README file provide instructions to reproduce the result in numerical studies section of our paper.
+This repo contains scripts of simulation and real data analysis for our paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'. This README file provides instructions to reproduce the result in the numerical studies section of our paper.
 
 ### Environment and Setup
 
@@ -34,6 +34,13 @@ cd visualize
 python exp1.py
 ```
 
+To get the plot in Fig 3 (d), we use the command
+
+```
+python far_vis.py --p 1000
+```
+
+
 ### Exp 2: Comparison with Dropout
 
 We need to reuse the logs in Exp 1
@@ -59,7 +66,7 @@ bash scripts/exp2-z8.sh
 bash scripts/exp2-z9.sh
 ```
 
-Visualize the result
+Visualize the result (Fig 3 (b))
 
 ```
 cd visualize
@@ -76,43 +83,50 @@ mkdir logs/exp3
 bash scripts/exp3.sh
 ```
 
-Visualize the result
+Visualize the result (Fig 3 (c))
 
 ```
 cd visualize
 python exp3.py
 ```
 
-### Exp 4: 
+### Exp 4
 
-For the result in Fig 5 (a),
+For the result in Fig 4 (a),
 
 ```
 mkdir logs/exp4-hcm0-m200 
-bash scripts/exp4.sh
+bash scripts/exp4-1.sh
 cd visualize
-python exp4.py
+python exp4-1.py
 ```
 
-To reproduce the result in Fig 5 (b), the procedure is similar, we need to slightly change the script and visualization code. To be specific, we need to change the 6-th line of `scripts/exp4.sh` from
+To reproduce the result in Fig 4 (b), we use the following command
 
 ```
-        python fast_exp.py --p $p --seed $s --hcm_id 0 --record_dir logs/exp4-hcm0-m200 --m 200 --hp_tau 0.005
+mkdir logs/exp4-hcm3-m200 
+bash scripts/exp4-2.sh
+cd visualize
+python exp4-2.py
 ```
 
-to
+To plot an visualize as Fig 5, one should use the following command
 
 ```
-        python fast_exp.py --p $p --seed $s --hcm_id 3 --record_dir logs/exp4-hcm3-m200 --m 200 --hp_tau 0.005
-```
-
-And some part of the script `exp4.py` should also be changed. To plot an visualize as Fig 6, one should use the following command.
-
-```
-python fast_exp.py --hcm_id 0 --p 1000 --visualize_mat True --seed 4 --m 200 --hp_tau 0.005
-python fast_exp.py --hcm_id 3 --p 1000 --visualize_mat True --seed 4 --m 200 --hp_tau 0.005
+python fast_exp.py --hcm_id 0 --p 1000 --visualize_mat True --seed 5
+python fast_exp.py --hcm_id 3 --p 1000 --visualize_mat True --seed 5
 ```
 
 and the plot will be saved as `FAST-NN/a.pdf`.
 
+
+### Real Data Application
+
+The following commands are used to reproduce the results in Table 1 of Supplemental Material.
+
+```
+python fredmd_cross.py --idx $id
+```
+
+id is 88 for TB6SMFFM, 87 for TB3SMFFM, and 28 for UEMP15T26.
 

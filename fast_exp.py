@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from data.covariate import FactorModel
 from models.fast_nn import FactorAugmentedSparseThroughputNN
-from models.far_nn import RegressionNN
+from models.far_nn import FactorAugmentedNN, RegressionNN
 from data.fast_data import RegressionDataset, AdditiveModel, HierarchicalCompositionModels
 from torch.utils.data import DataLoader
 from scipy.sparse.linalg.eigen.arpack import eigsh as largest_eigsh
@@ -22,12 +22,12 @@ init(autoreset=True)
 parser = argparse.ArgumentParser()
 parser.add_argument("--n", help="number of samples", type=int, default=1000)
 parser.add_argument("--m", help="number of samples to calculate the diversified "
-								"projection matrix", type=int, default=100)
+								"projection matrix", type=int, default=200)
 parser.add_argument("--p", help="data dimension", type=int, default=1000)
 parser.add_argument("--r", help="factor dimension", type=int, default=4)
 parser.add_argument('--s', help="number of important individual variables", type=int, default=5)
-parser.add_argument("--hp_lambda", help="hyperparameter lambda", type=float, default=0.01)
-parser.add_argument("--hp_tau", help="hyperparameter tau", type=float, default=0.01)
+parser.add_argument("--hp_lambda", help="hyperparameter lambda", type=float, default=0.0108)
+parser.add_argument("--hp_tau", help="hyperparameter tau", type=float, default=0.005)
 parser.add_argument("--r_bar", help="diversified weight dimension", type=int, default=10)
 parser.add_argument("--width", help="width of NN", type=int, default=300)
 parser.add_argument("--depth", help="depth of NN", type=int, default=4)
@@ -54,7 +54,8 @@ width = args.width
 depth = args.depth
 n_test = 10000
 n_valid = args.n * 3 // 10
-
+penalty_weight = np.log(p) / n_train * 1.3 #* args.hp_lambda
+#print('n = {}, log(p) = {}, penalty weight = {}'.format(n_train, np.log(p), penalty_weight))
 # data generating process
 #regression_model = AdditiveModel(num_funcs=args.r + args.s, normalize=False)
 #regression_model.func_idx[4] = 0
@@ -131,6 +132,9 @@ print(f"Diversified projection matrix size {np.shape(dp_matrix)}")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
+far_nn_model = FactorAugmentedNN(p=args.p, r_bar=args.r_bar, depth=depth, width=width,
+									dp_mat=dp_matrix, fix_dp_mat=True).to(device)
+
 fast_nn_model = \
 	FactorAugmentedSparseThroughputNN(p=args.p, r_bar=args.r_bar, depth=depth, width=width,
 									  sparsity=args.r_bar, dp_mat=dp_matrix, rs_mat=rs_matrix).to(device)
@@ -157,8 +161,8 @@ def train_loop(data_loader, model, loss_fn, optimizer, reg_tau=None):
 		loss_rec['l2_loss'] += loss.item()
 		if reg_tau is not None:
 			reg_loss = model.regularization_loss(reg_tau)
-			loss_rec['reg_loss'] += args.hp_lambda * reg_loss
-			loss += args.hp_lambda * reg_loss
+			loss_rec['reg_loss'] += penalty_weight * reg_loss
+			loss += penalty_weight * reg_loss
 
 		optimizer.zero_grad()
 		loss.backward()
@@ -184,6 +188,7 @@ def test_loop(data_loader, model, loss_fn, reg_tau=None):
 mse_loss = nn.MSELoss()
 models = {
 	'fast-nn': fast_nn_model,
+	'far-nn': far_nn_model,
 	'oracle-nn': oracle_nn_model,
 	'oracle-f-nn': oracle_f_nn_model
 }
@@ -260,7 +265,7 @@ def joint_train(model_names):
 	return result
 
 
-test_l2_error = joint_train(['oracle-nn', 'fast-nn', 'oracle-f-nn'])
+test_l2_error = joint_train(['oracle-nn', 'fast-nn', 'far-nn', 'oracle-f-nn'])
 if len(args.record_dir) > 0:
 	np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
 end_time = time.time()

@@ -3,7 +3,6 @@ import torch
 import random
 import numpy as np
 from torch import nn
-import matplotlib.pyplot as plt
 
 from data.covariate import FactorModel
 from models.far_nn import FactorAugmentedNN, RegressionNN
@@ -183,13 +182,6 @@ for method_name, model_x in models.items():
     optimizers[method_name] = optimizer_x
 
 
-# setting of plot
-plt.rcParams["font.family"] = "Times New Roman"
-plt.rc('font', size=24)
-plt.style.use('seaborn-darkgrid')
-palette = plt.get_cmap('Set1')
-
-
 def train_one_dim_nn():
     for epoch in range(num_epoch):
         print(f"Epoch {epoch+1}\n-------------------")
@@ -220,18 +212,21 @@ def joint_train(model_names):
     test_perf = {}
     anneal_rate = (args.hp_tau * 20 - args.hp_tau) / num_epoch
     anneal_tau = args.hp_tau * 20
-    full_result = np.zeros((num_epoch, len(model_names)))
+    train_result, valid_result = np.zeros((num_epoch, len(model_names))), np.zeros((num_epoch, len(model_names)))
+    early_stopping = [0] * len(model_names)
     for epoch in range(num_epoch):
         if epoch % 10 == 0:
             print(f"Epoch {epoch}\n--------------------")
         anneal_tau -= anneal_rate
-        for model_name in model_names:
+        for i, model_name in enumerate(model_names):
             reg_tau = anneal_tau if (model_name == 'fast-nn') else None
             train_data_loader = train_latent_dataloader if (model_name == 'oracle-nn') else train_obs_dataloader
             train_loss = train_loop(train_data_loader, models[model_name], mse_loss, optimizers[model_name], reg_tau)
             valid_data_loader = valid_latent_dataloader if (model_name == 'oracle-nn') else valid_obs_dataloader
             valid_loss = test_loop(valid_data_loader, models[model_name], mse_loss)
-            if valid_loss < best_valid[model_name]:
+            train_result[epoch, i], valid_result[epoch, i] = train_loss, valid_loss
+            if valid_loss < best_valid[model_name] and epoch >= 100:
+                early_stopping[i] = epoch
                 best_valid[model_name] = valid_loss
                 test_data_loader = test_latent_dataloader if (model_name == 'oracle-nn') else test_obs_dataloader
                 test_loss = test_loop(test_data_loader, models[model_name], mse_loss)
@@ -243,29 +238,47 @@ def joint_train(model_names):
     result = np.zeros((1, len(model_names)))
     for i, name in enumerate(model_names):
         result[0, i] = test_perf[name]
-    return result
+    return result, train_result, valid_result, early_stopping
 
+timestep = np.arange(num_epoch)
+print(timestep)
+_, trainc, validc, early_stopping = joint_train(["oracle-nn", "far-nn", "fast-nn", "pca-aug-nn", "joint-nn", "vanilla-nn"])
 
-# Exp 1 Execute
-if args.exp_id == 1:
-    test_l2_error = joint_train(["oracle-nn", "far-nn", "vanilla-nn", "joint-nn", "pca-aug-nn", "fast-nn"])
-    if len(args.record_dir) > 0:
-        np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
-    end_time = time.time()
-    print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
+color_tuple = [
+    '#ae1908',  # red
+    '#ec813b',  # orange
+    '#e5a84b',
+    '#6bb392',
+    '#05348b',  # dark blue
+    '#9acdc4',  # pain blue
+]
+model_name = [
+    'Oracle-NN',
+    'FAR-NN',
+    'FAST-NN',
+    'PCA-A-NN',
+    'NN-Joint',
+    'Vanilla-NN',
+]
 
+import matplotlib.pyplot as plt
+from matplotlib import rc
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rc('font', size=15)
+rc('text', usetex=True)
 
-if args.exp_id == 2:
-    test_l2_error = joint_train(["joint-dropout-nn", "dropout-nn"])
-    if len(args.record_dir) > 0:
-        np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}.csv", test_l2_error, delimiter=",")
-    end_time = time.time()
-    print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
+plt.figure(figsize=(6, 6))
+for i in range(6):
+    plt.plot(timestep, trainc[:, i], color=color_tuple[i], linestyle='dashed', linewidth=1.8)
+    plt.plot(timestep, validc[:, i], color=color_tuple[i], linestyle='solid', label=model_name[i], linewidth=1.8)
 
+#for i in range(6):
+#    plt.vlines(x=early_stopping[i], ymin=-0.1, ymax=2.5, color=color_tuple[i], linestyle='dotted', linewidth=1)
 
-if args.exp_id == 3:
-    test_l2_error = joint_train(["oracle-nn", "far-nn"])
-    if len(args.record_dir) > 0:
-        np.savetxt(args.record_dir + f"/p{args.p}s{args.seed}m{args.m}.csv", test_l2_error, delimiter=",")
-    end_time = time.time()
-    print(f"Case with p = {args.p}, seed = {args.seed} done: time = {end_time - start_time} secs")
+plt.ylabel(r"Empirical $L_2$ Loss")
+plt.xlabel(r"Epochs")
+plt.ylim([-0.1, 2.3])
+#plt.yscale("log")
+plt.legend()
+plt.show()
+
