@@ -3,6 +3,9 @@ from numpy import genfromtxt
 
 
 class fred_md_data:
+	'''
+		The wrapper for FREDMD data
+	'''
 	def __init__(self, file_name='transfromed_data.csv', pred_index=None):
 		self.data = genfromtxt(file_name, delimiter=',')
 		self.pred_index = pred_index

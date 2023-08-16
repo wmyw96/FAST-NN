@@ -61,20 +61,23 @@ marker = [
 	'x',
 ]
 
-plt.figure(figsize=(6, 6))
+fig = plt.figure(figsize=(6, 6))
+ax1 = fig.add_subplot(111)
+plt.subplots_adjust(top=0.98, bottom=0.13, left=0.16, right=0.98)
 for i in [0, 1, 5, 4, 2, 3]:
-	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], linestyle=lines[i], label=model_name[i],
+	ax1.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], linestyle=lines[i], label=model_name[i],
 			marker=marker[i])
 
-	plt.fill_between(np.array(cand_p), l2_loss_matrix_mn[:, i] - l2_loss_matrix_std[:, i],
+	ax1.fill_between(np.array(cand_p), l2_loss_matrix_mn[:, i] - l2_loss_matrix_std[:, i],
  					l2_loss_matrix_mn[:, i] + l2_loss_matrix_std[:, i], color=color_tuple[i], alpha=0.1)
 
-plt.ylabel(r"$\widehat{\mathtt{MSE}}$")
-plt.xlabel(r"ambient dimension $p$")
+plt.ylabel(r"$\widehat{\mathtt{MSE}}$", fontsize=22)
+plt.xlabel(r"ambient dimension $p$", fontsize=22)
 
 plt.yscale("log")
 plt.xscale("log")
 plt.ylim([0.06, 0.75])
-plt.yticks([0.08, 0.1, 0.2, 0.3, 0.6], ['0.08', '0.1', '0.2', '0.3', '0.6'])
-plt.legend()
+plt.yticks([0.08, 0.1, 0.2, 0.3, 0.6], ['0.08', '0.1', '0.2', '0.3', '0.6'], fontsize=20)
+plt.xticks(fontsize=20)
+ax1.legend(loc='best')
 plt.show()

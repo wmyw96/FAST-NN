@@ -52,15 +52,19 @@ marker = [
 	','
 ]
 
-plt.figure(figsize=(6, 6))
+
+fig = plt.figure(figsize=(6, 6))
+ax1 = fig.add_subplot(111)
+plt.subplots_adjust(top=0.98, bottom=0.13, left=0.16, right=0.98)
+
 for i in range(4):
-	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], linestyle=lines[i],
+	ax1.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_tuple[i], linestyle=lines[i],
 			 label=model_name[i], marker=marker[i])
 
 #plt.plot([1, 8000], [0.10, 0.10], color='black', linestyle='dotted')
 
-plt.ylabel(r"$\widehat{\mathtt{MSE}}$")
-plt.xlabel(r"ambient dimension $p$")
+plt.ylabel(r"$\widehat{\mathtt{MSE}}$", fontsize=22)
+plt.xlabel(r"ambient dimension $p$", fontsize=22)
 
 plt.yscale("log")
 plt.xscale("log")
@@ -68,12 +72,13 @@ plt.xscale("log")
 if hcm_model == 0:
 	# setting: HCM 0
 	plt.ylim([0.005, 3])
-	plt.yticks([0.01, 0.02, 0.12, 1.6], ['0.01', '0.02', '0.12', '1.6'])
+	plt.yticks([0.01, 0.02, 0.12, 1.6], ['0.01', '0.02', '0.12', '1.6'], fontsize=20)
 else:
 
 	# setting: HCM 3
 	plt.ylim([0.02, 2.4])
-	plt.yticks([0.05, 0.10, 0.25, 1.5], ['0.05', '0.10', '0.25', '1.5'])
+	plt.yticks([0.05, 0.10, 0.25, 1.5], ['0.05', '0.10', '0.25', '1.5'], fontsize=20)
+plt.xticks(fontsize=20)
 
 plt.legend()
 plt.show()

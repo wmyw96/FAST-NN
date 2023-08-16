@@ -267,18 +267,23 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rc('font', size=15)
 rc('text', usetex=True)
 
-plt.figure(figsize=(6, 6))
+fig = plt.figure(figsize=(6, 6))
+ax1 = fig.add_subplot(111)
+plt.subplots_adjust(top=0.98, bottom=0.13, left=0.16, right=0.98)
+
 for i in range(6):
-    plt.plot(timestep, trainc[:, i], color=color_tuple[i], linestyle='dashed', linewidth=1.8)
-    plt.plot(timestep, validc[:, i], color=color_tuple[i], linestyle='solid', label=model_name[i], linewidth=1.8)
+    ax1.plot(timestep, trainc[:, i], color=color_tuple[i], linestyle='dashed', linewidth=1.8)
+    ax1.plot(timestep, validc[:, i], color=color_tuple[i], linestyle='solid', label=model_name[i], linewidth=1.8)
 
 #for i in range(6):
 #    plt.vlines(x=early_stopping[i], ymin=-0.1, ymax=2.5, color=color_tuple[i], linestyle='dotted', linewidth=1)
 
-plt.ylabel(r"Empirical $L_2$ Loss")
-plt.xlabel(r"Epochs")
+plt.ylabel(r"empirical $L_2$ loss", fontsize=22)
+plt.xlabel(r"epochs", fontsize=22)
 plt.ylim([-0.1, 2.3])
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
 #plt.yscale("log")
-plt.legend()
+plt.legend(loc='best')
 plt.show()
 

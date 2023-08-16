@@ -60,18 +60,24 @@ def color_fader(c1, c2, mix=0.0):
 	return mpl.colors.to_hex((1-mix) * c1 + mix * c2)
 
 plt.figure(figsize=(6, 6))
+
+fig = plt.figure(figsize=(6, 6))
+ax1 = fig.add_subplot(111)
+plt.subplots_adjust(top=0.98, bottom=0.13, left=0.16, right=0.98)
+
 for i in range(4):
-	plt.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_fader(color_tuple[1], color_tuple[3], mix=1-i/3.0),
+	ax1.plot(cand_p, l2_loss_matrix_mn[:, i], color=color_fader(color_tuple[1], color_tuple[3], mix=1-i/3.0),
 			 linestyle=lines[i], label=r'$n_1={}$'.format(cand_m[i]), marker='o')
 # plt.fill_between(np.array(cand_p), l2_loss_matrix_mn[:, i] - l2_loss_matrix_std[:, i],
 # 					l2_loss_matrix_mn[:, i] + l2_loss_matrix_std[:, i], color=color_tuple[i], alpha=0.1)
 
-plt.ylabel(r"$\widehat{\mathtt{MSE}}$")
-plt.xlabel(r"ambient dimension $p$")
+plt.ylabel(r"$\widehat{\mathtt{MSE}}$", fontsize=22)
+plt.xlabel(r"ambient dimension $p$", fontsize=22)
 
 plt.yscale("log")
 plt.xscale("log")
 # plt.ylim([0.05, 0.65])
-plt.yticks([0.06, 0.1, 0.2, 0.3, 0.5], ['0.06', '0.1', '0.2', '0.3', '0.5'])
-plt.legend()
+plt.yticks([0.06, 0.1, 0.2, 0.3, 0.5], ['0.06', '0.1', '0.2', '0.3', '0.5'], fontsize=20)
+plt.xticks(fontsize=20)
+plt.legend(loc='best')
 plt.show()
