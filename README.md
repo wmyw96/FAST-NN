@@ -1,6 +1,23 @@
 ## Scripts for our paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'
 
-This repo contains scripts of simulation and real data analysis for our paper 'Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression'. This README file provides instructions to reproduce the result in the numerical studies section of our paper.
+This repo contains scripts of simulation and real data analysis for our paper '[Factor Augmented Sparse Throughput Deep Neural Networks for High Dimensional Regression](https://www.tandfonline.com/doi/full/10.1080/01621459.2023.2271605)'. This README file provides instructions to reproduce the result in the numerical studies section of our paper. To cite our paper 
+
+```bibtex
+@article{fan2024factor,
+author = {Jianqing Fan and Yihong Gu},
+title = {Factor Augmented Sparse Throughput Deep ReLU Neural Networks for High Dimensional Regression},
+journal = {Journal of the American Statistical Association},
+volume = {119},
+number = {548},
+pages = {2680--2694},
+year = {2024},
+publisher = {ASA Website},
+doi = {10.1080/01621459.2023.2271605},
+URL = {https://doi.org/10.1080/01621459.2023.2271605},
+eprint = {https://doi.org/10.1080/01621459.2023.2271605}
+}
+```
+
 
 ### Environment and Setup
 
